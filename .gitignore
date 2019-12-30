@@ -1,0 +1,45 @@
+
+# Directories #
+build/
+bin/
+target/
+libs/
+tmp/
+
+*.class
+ 
+# Package Files #
+*.jar
+*.war
+*.ear
+*.db
+rebel.xml
+
+######################
+# Windows
+######################
+ 
+# Windows image file caches
+Thumbs.db 
+ 
+# Folder config file
+Desktop.ini
+ 
+######################
+# OSX
+######################
+ 
+.DS_Store
+.svn
+ 
+# Thumbnails
+._*
+ 
+######################
+# IDEA
+######################
+*.iml
+*.ipr
+*.iws
+.idea/
+atlassian-ide-plugin.xml

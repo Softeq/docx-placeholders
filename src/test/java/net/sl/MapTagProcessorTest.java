@@ -24,7 +24,7 @@ import java.util.Map;
  *
  * @author slapitsky
  */
-public class DocxTemplateFillerBasicTest
+public class MapTagProcessorTest
 {
 
     private DocxTemplateFiller filler = new DocxTemplateFiller();
@@ -32,7 +32,7 @@ public class DocxTemplateFillerBasicTest
     @Test
     public void testFilling()
     {
-        try (InputStream templateIs = getClass().getResourceAsStream("/net/sl/Simple-placeholder-value-template.docx");
+        try (InputStream templateIs = getClass().getResourceAsStream("/net/sl/MapTagProcessorTest-template.docx");
              ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();)
         {
             Map<String, String> placeholdersValuesMap = Collections.singletonMap("placeholder", "value");

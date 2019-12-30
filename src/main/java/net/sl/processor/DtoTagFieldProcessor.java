@@ -1,0 +1,68 @@
+package net.sl.processor;
+
+import net.sl.DocxTemplateFillerContext;
+import net.sl.DocxTemplateUtils;
+import net.sl.TagInfo;
+import net.sl.exception.DocxTemplateFillerException;
+import net.sl.exception.DocxTemplateFillerTechnicalException;
+import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.xwpf.usermodel.IBodyElement;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+
+import java.lang.reflect.InvocationTargetException;
+
+/**
+ * The processor is based on DTO fields
+ * <p/>
+ * The processor can fill template placeholder with POJO DTO fields (by name)
+ * <p/>
+ * Created on 10/4/2019.
+ * <p/>
+ *
+ * @author slapitsky
+ */
+public class DtoTagFieldProcessor extends AbstractTagProcessor implements TagProcessor {
+
+    public static final String DTO_PATH_TAG_PREFIX = "dtoField:";
+
+    @Override
+    public boolean canProcessTag(TagInfo tag) {
+        return tag.getTagText().startsWith(DTO_PATH_TAG_PREFIX);
+    }
+
+    @Override
+    public IBodyElement process(TagInfo tag, IBodyElement elem, DocxTemplateFillerContext context)
+            throws DocxTemplateFillerException {
+        try {
+            String tagValue = getStringTagValue(tag, context);
+            fillTagPlaceholderWithValue((XWPFParagraph) elem, tag, tagValue, context);
+
+            return DocxTemplateUtils.getInstance().getNextSibling(elem);
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            DocxTemplateUtils.getInstance().storeDocToFile(((XWPFParagraph) elem).getDocument(),
+                    "d:/temp/_beforeException-" + System.currentTimeMillis() + ".docx");
+            throw new DocxTemplateFillerException("Cannot access value for tag " + tag.getTagText(), e);
+        }
+    }
+
+    private String getStringTagValue(TagInfo tag, DocxTemplateFillerContext context)
+            throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
+        Object value = null;
+        try {
+            value = PropertyUtils.getSimpleProperty(context.getRootValue(), getRealTagName(tag));
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new DocxTemplateFillerTechnicalException("Cannot get tag " + tag + " value from the context");
+        }
+        String tagValue = value == null ? null : value.toString();
+        if (tagValue == null) {
+            tagValue = StringUtils.EMPTY;
+        }
+        return tagValue;
+    }
+
+    private String getRealTagName(TagInfo tag) {
+        return tag.getTagText().substring(DTO_PATH_TAG_PREFIX.length());
+    }
+
+}

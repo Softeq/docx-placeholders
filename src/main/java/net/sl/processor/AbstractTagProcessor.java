@@ -4,7 +4,6 @@ import net.sl.DocxTemplateFillerContext;
 import net.sl.DocxTemplateUtils;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
@@ -22,8 +21,7 @@ import java.util.List;
  *
  * @author slapitsky
  */
-public class AbstractTagProcessor
-{
+public class AbstractTagProcessor {
 
     /**
      * A paragraph where the tag was found is filled with the provided value. The tag's placeholders is replaced with tag value
@@ -35,8 +33,7 @@ public class AbstractTagProcessor
      * @throws DocxTemplateFillerException
      */
     protected void fillTagPlaceholderWithValue(XWPFParagraph par, TagInfo tag, String value, DocxTemplateFillerContext context)
-            throws DocxTemplateFillerException
-    {
+            throws DocxTemplateFillerException {
         //position in the paragraph where placeholder ends
         int endIndex = tag.getTagStartOffset() + context.getTagStart().length() + tag.getTagText().length() + ("/" + context.getTagEnd())
                 .length();
@@ -49,19 +46,16 @@ public class AbstractTagProcessor
         List<XWPFRun> parRuns = par.getRuns();
         //if placeholder's mid is a separate ran the run must be removed totally
         List<Integer> runsToBeRemoved = new ArrayList<>();
-        for (int i = 0; i < parRuns.size(); i++)
-        {
+        for (int i = 0; i < parRuns.size(); i++) {
             XWPFRun run = parRuns.get(i);
             String runText = run.text();
 
-            switch (runText)
-            {
+            switch (runText) {
                 case DocxTemplateUtils.PAGE_BREAK:
                     par.setPageBreak(true);
                     break;
                 case DocxTemplateUtils.COMMA_SEPARATOR:
-                    if (StringUtils.EMPTY.equals(parRuns.get(i - 1).text()))
-                    {
+                    if (StringUtils.EMPTY.equals(parRuns.get(i - 1).text())) {
                         runsToBeRemoved.add(0, i);
                     }
                     break;
@@ -69,24 +63,17 @@ public class AbstractTagProcessor
                     break;
             }
             int runEndPosition = accumulatedTextLength + runText.length();
-            if (tag.getTagStartOffset() >= accumulatedTextLength && tag.getTagStartOffset() < runEndPosition)
-            {
+            if (tag.getTagStartOffset() >= accumulatedTextLength && tag.getTagStartOffset() < runEndPosition) {
                 //insert in this run (placeholder placeHolderStartIndex is in this run)
                 replaceRun = run;
                 newRunText = runText.substring(0, tag.getTagStartOffset() - accumulatedTextLength);
-            }
-            else if (accumulatedTextLength > tag.getTagStartOffset())
-            {
-                if (endIndex >= runEndPosition)
-                {
+            } else if (accumulatedTextLength > tag.getTagStartOffset()) {
+                if (endIndex >= runEndPosition) {
                     //the run is located within placeholder's bounds
                     runsToBeRemoved.add(0, i);
-                }
-                else
-                {
+                } else {
                     //the run has end of placeholder
-                    if (endIndex - accumulatedTextLength > 0)
-                    {
+                    if (endIndex - accumulatedTextLength > 0) {
                         String newText = runText.substring(endIndex - accumulatedTextLength);
                         run.setText(newText, 0);
                     }
@@ -97,20 +84,17 @@ public class AbstractTagProcessor
         }
 
         //remove runs inside placeholder
-        for (int removeRunIndex : runsToBeRemoved)
-        {
+        for (int removeRunIndex : runsToBeRemoved) {
             par.removeRun(removeRunIndex);
         }
-        if (replaceRun == null)
-        {
+        if (replaceRun == null) {
             throw new DocxTemplateFillerException("Cannot replace tag. Paragraph text='" + par.getText() +
                     "' offset=" + tag.getTagStartOffset() + " tag=" + tag.getTagText());
         }
         //remove part of placeholder from run
         replaceRun.setText(newRunText, 0);
         XWPFRun tagValueRun = replaceRun;
-        if (newRunText.length() != 0)
-        {
+        if (newRunText.length() != 0) {
             tagValueRun = par.createRun();
         }
         //and fill value to the run

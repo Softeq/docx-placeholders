@@ -4,8 +4,8 @@ import net.sl.dto.CompanyExampleDto;
 import net.sl.dto.CompanyProjectDto;
 import net.sl.dto.DeveloperDto;
 import net.sl.exception.DocxTemplateFillerException;
-import net.sl.processor.DtoTagProcessor;
-
+import net.sl.processor.DtoTagCollectionProcessor;
+import net.sl.processor.DtoTagFieldProcessor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.junit.Assert;
 import org.junit.Test;
@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * <p/>
@@ -33,15 +32,13 @@ public class DocxTemplateFillerDtoSourceTest
     public void testFillingFromDto()
     {
         try (InputStream templateIs = getClass().getResourceAsStream("/net/sl/Placeholders-dto-value-template.docx");
-             ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();)
-        {
+             ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();) {
             DocxTemplateFillerContext context = new DocxTemplateFillerContext();
-            context.setProcessors(Collections.singletonList(new DtoTagProcessor(fillExample())));
+            context.setProcessors(Arrays.asList(new DtoTagCollectionProcessor(), new DtoTagFieldProcessor()));
+            context.push(null, fillExample());
             filler.fillTemplate(templateIs, filledTemplateOs, context);
             Assert.assertNotEquals(0, filledTemplateOs.size());
-        }
-        catch (IOException | InvalidFormatException | DocxTemplateFillerException ex)
-        {
+        } catch (IOException | InvalidFormatException | DocxTemplateFillerException ex) {
             Assert.fail();
         }
     }

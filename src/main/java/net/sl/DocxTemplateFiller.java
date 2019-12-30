@@ -1,7 +1,6 @@
 package net.sl;
 
 import net.sl.exception.DocxTemplateFillerException;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -23,8 +22,7 @@ import java.io.OutputStream;
  *
  * @author slapitsky
  */
-public class DocxTemplateFiller
-{
+public class DocxTemplateFiller {
 
     public static final String TAG_START = "${{";
 
@@ -41,10 +39,9 @@ public class DocxTemplateFiller
      * @throws DocxTemplateFillerException
      */
     public void fillTemplate(InputStream templateSourceStream,
-            OutputStream filledTemplateStream,
-            DocxTemplateFillerContext context)
-            throws IOException, InvalidFormatException, DocxTemplateFillerException
-    {
+                             OutputStream filledTemplateStream,
+                             DocxTemplateFillerContext context)
+            throws IOException, InvalidFormatException, DocxTemplateFillerException {
 
         XWPFDocument doc = new XWPFDocument(OPCPackage.open(templateSourceStream));
 
@@ -52,13 +49,11 @@ public class DocxTemplateFiller
         DocxTemplateUtils.getInstance().fillTags(doc, context);
 
         //replace tags in the document headers
-        for (XWPFHeader header : doc.getHeaderList())
-        {
+        for (XWPFHeader header : doc.getHeaderList()) {
             DocxTemplateUtils.getInstance().fillTags(header, context);
         }
         //replace tags in the document footers
-        for (XWPFFooter footer : doc.getFooterList())
-        {
+        for (XWPFFooter footer : doc.getFooterList()) {
             DocxTemplateUtils.getInstance().fillTags(footer, context);
         }
         doc.write(filledTemplateStream);

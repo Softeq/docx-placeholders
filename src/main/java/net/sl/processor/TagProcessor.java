@@ -3,7 +3,6 @@ package net.sl.processor;
 import net.sl.DocxTemplateFillerContext;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
-
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 
 /**
@@ -16,8 +15,7 @@ import org.apache.poi.xwpf.usermodel.IBodyElement;
  *
  * @author slapitsky
  */
-public interface TagProcessor
-{
+public interface TagProcessor {
 
     /**
      * Checks whether the parocessor can process the tag.

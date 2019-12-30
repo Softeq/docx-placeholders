@@ -8,16 +8,13 @@ package net.sl.exception;
  *
  * @author slapitsky
  */
-public class DocxTemplateFillerException extends Exception
-{
+public class DocxTemplateFillerException extends Exception {
 
-    public DocxTemplateFillerException(String message)
-    {
+    public DocxTemplateFillerException(String message) {
         super(message);
     }
 
-    public DocxTemplateFillerException(String message, Exception e)
-    {
+    public DocxTemplateFillerException(String message, Exception e) {
         super(message, e);
     }
 }

@@ -2,7 +2,6 @@ package net.sl;
 
 import net.sl.exception.DocxTemplateFillerException;
 import net.sl.exception.DocxTemplateFillerTechnicalException;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.xwpf.usermodel.BodyElementType;
 import org.apache.poi.xwpf.usermodel.IBody;
@@ -38,8 +37,7 @@ import java.util.List;
  *
  * @author slapitsky
  */
-public class DocxTemplateUtils
-{
+public class DocxTemplateUtils {
     public static final String PAGE_BREAK = "\n";
 
     public static final String COMMA_SEPARATOR = ", ";
@@ -56,25 +54,19 @@ public class DocxTemplateUtils
 
     private static DocxTemplateUtils instance = new DocxTemplateUtils();
 
-    public static DocxTemplateUtils getInstance()
-    {
+    public static DocxTemplateUtils getInstance() {
         return instance;
     }
 
-    public XWPFDocument deepCloneElements(List<IBodyElement> source) throws IOException
-    {
-        try (XWPFDocument targetDoc = new XWPFDocument())
-        {
-            for (IBodyElement bodyElement : source)
-            {
+    public XWPFDocument deepCloneElements(List<IBodyElement> source) throws IOException {
+        try (XWPFDocument targetDoc = new XWPFDocument()) {
+            for (IBodyElement bodyElement : source) {
                 BodyElementType elementType = bodyElement.getElementType();
 
-                if (elementType.name().equals(DOC_ELEMENT_TYPE_PARAGRAPH))
-                {
+                if (elementType.name().equals(DOC_ELEMENT_TYPE_PARAGRAPH)) {
                     XWPFParagraph pr = (XWPFParagraph) bodyElement;
                     pr.getRuns().forEach(run -> {
-                        if (PAGE_BREAK.equals(run.text()))
-                        {
+                        if (PAGE_BREAK.equals(run.text())) {
                             pr.setPageBreak(true);
                         }
                     });
@@ -82,9 +74,7 @@ public class DocxTemplateUtils
                     newPr.getCTP().setPPr(pr.getCTP().getPPr());
                     int pos = targetDoc.getParagraphs().size() - 1;
                     targetDoc.setParagraph(pr, pos);
-                }
-                else if (elementType.name().equals(DOC_ELEMENT_TYPE_TABLE))
-                {
+                } else if (elementType.name().equals(DOC_ELEMENT_TYPE_TABLE)) {
                     XWPFTable table = (XWPFTable) bodyElement;
                     XWPFTable newTbl = targetDoc.createTable();
                     newTbl.getCTTbl().setTblPr(table.getCTTbl().getTblPr());
@@ -99,29 +89,23 @@ public class DocxTemplateUtils
         }
     }
 
-    public void copyParagraph(XWPFParagraph source, XWPFParagraph target)
-    {
+    public void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
         target.getCTP().setPPr(source.getCTP().getPPr());
         // copy hyperlinks
         Arrays.stream(source.getCTP().getHyperlinkArray()).forEach(sourceHyperlink ->
                 addHyperlink(target, sourceHyperlink.getAnchor(), sourceHyperlink.getId())
         );
-        for (int i = 0; i < source.getRuns().size(); i++)
-        {
+        for (int i = 0; i < source.getRuns().size(); i++) {
             XWPFRun run = source.getRuns().get(i);
             XWPFRun targetRun = target.createRun();
             //copy formatting
             targetRun.getCTR().setRPr(run.getCTR().getRPr());
-            if (run.getEmbeddedPictures().isEmpty())
-            {
+            if (run.getEmbeddedPictures().isEmpty()) {
                 //no images just copy text
                 targetRun.setText(getRunText(run));
-            }
-            else
-            {
+            } else {
                 //need to copy image's content
-                for (XWPFPicture picture : run.getEmbeddedPictures())
-                {
+                for (XWPFPicture picture : run.getEmbeddedPictures()) {
                     //get source image width and height
                     long w = picture.getCTPicture().getSpPr().getXfrm().getExt().getCx();
                     long h = picture.getCTPicture().getSpPr().getXfrm().getExt().getCy();
@@ -129,15 +113,12 @@ public class DocxTemplateUtils
                     byte[] img = pictureData.getData();
                     String fileName = pictureData.getFileName();
                     int imageFormat = pictureData.getPictureType();
-                    try
-                    {
+                    try {
                         targetRun.addPicture(new ByteArrayInputStream(img),
                                 imageFormat,
                                 fileName,
                                 (int) w, (int) h);
-                    }
-                    catch (InvalidFormatException | IOException e)
-                    {
+                    } catch (InvalidFormatException | IOException e) {
                         throw new DocxTemplateFillerTechnicalException("Unexpected image inserting error ", e);
                     }
                 }
@@ -145,12 +126,10 @@ public class DocxTemplateUtils
         }
     }
 
-    public String getRunText(XWPFRun run)
-    {
+    public String getRunText(XWPFRun run) {
         StringBuilder sb = new StringBuilder();
         int partsCount = run.getCTR().getTArray().length;
-        for (int i = 0; i < partsCount; i++)
-        {
+        for (int i = 0; i < partsCount; i++) {
             sb.append(run.getText(i));
         }
         return sb.toString();
@@ -162,28 +141,22 @@ public class DocxTemplateUtils
      * @param source
      * @param target
      */
-    public void copyTable(XWPFTable source1, XWPFTable target) throws IOException
-    {
+    public void copyTable(XWPFTable source1, XWPFTable target) throws IOException {
         boolean isParentTableCell = target.getBody() instanceof XWPFTableCell;
         XWPFTable source = (XWPFTable) deepCloneElements(Collections.singletonList(source1)).getBodyElements().get(0);
         target.getCTTbl().setTblPr(source.getCTTbl().getTblPr());
         target.getCTTbl().setTblGrid(source.getCTTbl().getTblGrid());
-        for (int r = 0; r < source.getRows().size(); r++)
-        {
+        for (int r = 0; r < source.getRows().size(); r++) {
             //we may need to add row and then delete
             XWPFTableRow targetRow;
-            if (!isParentTableCell)
-            {
+            if (!isParentTableCell) {
                 targetRow = r == 0 && !target.getRows().isEmpty() ? target.getRows().get(0) : target.createRow();
-            }
-            else
-            {
+            } else {
                 targetRow = target.createRow();
             }
             XWPFTableRow row = source.getRows().get(r);
             targetRow.getCtRow().setTrPr(row.getCtRow().getTrPr());
-            for (int c = 0; c < row.getTableCells().size(); c++)
-            {
+            for (int c = 0; c < row.getTableCells().size(); c++) {
                 //newly created row has 1 cell
                 XWPFTableCell targetCell = c == 0 && !targetRow.getTableCells().isEmpty() ? targetRow.getTableCells().get(0)
                         : targetRow.createCell();
@@ -196,23 +169,18 @@ public class DocxTemplateUtils
 
     }
 
-    private void copyTableCell(XWPFTableCell targetCell, XWPFTableCell cell) throws IOException
-    {
+    private void copyTableCell(XWPFTableCell targetCell, XWPFTableCell cell) throws IOException {
         targetCell.getCTTc().setTcPr(cell.getCTTc().getTcPr());
         XmlCursor cursor = targetCell.getParagraphArray(0).getCTP().newCursor();
-        for (int p = 0; p < cell.getBodyElements().size(); p++)
-        {
+        for (int p = 0; p < cell.getBodyElements().size(); p++) {
             IBodyElement elem = cell.getBodyElements().get(p);
-            if (elem instanceof XWPFParagraph)
-            {
+            if (elem instanceof XWPFParagraph) {
                 XWPFParagraph targetPar = targetCell.insertNewParagraph(cursor);
                 cursor.toNextToken();
                 XWPFParagraph par = (XWPFParagraph) elem;
                 copyParagraph(par, targetPar);
                 targetPar.getRuns();
-            }
-            else if (elem instanceof XWPFTable)
-            {
+            } else if (elem instanceof XWPFTable) {
                 XWPFTable targetTable = targetCell.insertNewTbl(cursor);
                 XWPFTable table = (XWPFTable) elem;
                 copyTable(deepCloneTable(table), targetTable);
@@ -221,15 +189,13 @@ public class DocxTemplateUtils
         }
     }
 
-    private XWPFTable deepCloneTable(XWPFTable source) throws IOException
-    {
+    private XWPFTable deepCloneTable(XWPFTable source) throws IOException {
         XWPFDocument copyDoc = deepCloneElements(Collections.singletonList(source));
 
         return copyDoc.getTables().get(0);
     }
 
-    public void addHyperlink(XWPFParagraph par, String text, String url)
-    {
+    public void addHyperlink(XWPFParagraph par, String text, String url) {
         String rId = par.getDocument().getPackagePart().addExternalRelationship(url, XWPFRelation.HYPERLINK.getRelation()).getId();
         CTHyperlink hyperlink = par.getCTP().addNewHyperlink();
         hyperlink.setId(rId);
@@ -240,15 +206,11 @@ public class DocxTemplateUtils
         hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
     }
 
-    public IBodyElement getNextSibling(IBodyElement element)
-    {
+    public IBodyElement getNextSibling(IBodyElement element) {
         IBody body = element.getBody();
-        for (int i = 0; i < body.getBodyElements().size(); i++)
-        {
-            if (body.getBodyElements().get(i) == element)
-            {
-                if (i + 1 < body.getBodyElements().size())
-                {
+        for (int i = 0; i < body.getBodyElements().size(); i++) {
+            if (body.getBodyElements().get(i) == element) {
+                if (i + 1 < body.getBodyElements().size()) {
                     return body.getBodyElements().get(i + 1);
                 }
             }
@@ -257,13 +219,10 @@ public class DocxTemplateUtils
         return null;
     }
 
-    public int getElementIndex(IBodyElement element)
-    {
+    public int getElementIndex(IBodyElement element) {
         IBody body = element.getBody();
-        for (int i = 0; i < body.getBodyElements().size(); i++)
-        {
-            if (body.getBodyElements().get(i) == element)
-            {
+        for (int i = 0; i < body.getBodyElements().size(); i++) {
+            if (body.getBodyElements().get(i) == element) {
                 return i;
             }
         }
@@ -271,29 +230,23 @@ public class DocxTemplateUtils
         return -1;
     }
 
-    public TagInfo getTag(IBodyElement elem, DocxTemplateFillerContext context) throws DocxTemplateFillerException
-    {
+    public TagInfo getTag(IBodyElement elem, DocxTemplateFillerContext context) throws DocxTemplateFillerException {
         return getTag(elem, 0, context);
     }
 
-    public TagInfo getTag(IBodyElement elem, int offset, DocxTemplateFillerContext context) throws DocxTemplateFillerException
-    {
-        if (elem instanceof XWPFParagraph)
-        {
+    public TagInfo getTag(IBodyElement elem, int offset, DocxTemplateFillerContext context) throws DocxTemplateFillerException {
+        if (elem instanceof XWPFParagraph) {
             String text = ((XWPFParagraph) elem).getText();
             int tagStartOffset = text.indexOf(context.getTagStart(), offset);
-            if (tagStartOffset >= 0)
-            {
+            if (tagStartOffset >= 0) {
                 int tagEndOffset = text.indexOf(context.getTagEnd(), tagStartOffset);
-                if (tagEndOffset < 0)
-                {
+                if (tagEndOffset < 0) {
                     throw new DocxTemplateFillerException("No closing tag found for line " + text);
                 }
 
                 String tagText = text.substring(tagStartOffset + context.getTagStart().length(), tagEndOffset);
                 boolean isTagWithBody = !tagText.endsWith("/");
-                if (!isTagWithBody)
-                {
+                if (!isTagWithBody) {
                     tagText = tagText.substring(0, tagText.length() - 1);
                 }
                 return new TagInfo(tagText, tagStartOffset, isTagWithBody);
@@ -303,41 +256,31 @@ public class DocxTemplateUtils
     }
 
     public void fillTags(IBody body, DocxTemplateFillerContext context)
-            throws DocxTemplateFillerException
-    {
+            throws DocxTemplateFillerException {
         fillTags(body.getBodyElements(), context);
     }
 
     public void fillTags(XWPFTable table, DocxTemplateFillerContext context)
-            throws DocxTemplateFillerException
-    {
+            throws DocxTemplateFillerException {
 
-        for (int r = 0; r < table.getRows().size(); r++)
-        {
+        for (int r = 0; r < table.getRows().size(); r++) {
             XWPFTableRow row = table.getRows().get(r);
-            for (int c = 0; c < row.getTableCells().size(); c++)
-            {
+            for (int c = 0; c < row.getTableCells().size(); c++) {
                 fillTags(row.getTableCells().get(c), context);
             }
         }
     }
 
     public void fillTags(List<IBodyElement> bodyElements, DocxTemplateFillerContext context)
-            throws DocxTemplateFillerException
-    {
-        if (!bodyElements.isEmpty())
-        {
+            throws DocxTemplateFillerException {
+        if (!bodyElements.isEmpty()) {
             IBodyElement bodyElem = bodyElements.get(0);
-            while (bodyElem != null)
-            {
+            while (bodyElem != null) {
                 TagInfo tag = DocxTemplateUtils.getInstance().getTag(bodyElem, context);
-                if (tag != null)
-                {
+                if (tag != null) {
                     bodyElem = context.process(tag, bodyElem);
                     continue;
-                }
-                else if (bodyElem instanceof XWPFTable)
-                {
+                } else if (bodyElem instanceof XWPFTable) {
                     fillTags((XWPFTable) bodyElem, context);
                 }
                 bodyElem = context.getNextSibling(bodyElem);
@@ -345,41 +288,30 @@ public class DocxTemplateUtils
         }
     }
 
-    public void insertBodyElementsAfterParagraph(IBody sourceBody, XWPFParagraph tagStartPar) throws IOException
-    {
+    public void insertBodyElementsAfterParagraph(IBody sourceBody, XWPFParagraph tagStartPar) throws IOException {
         XWPFDocument doc = tagStartPar.getDocument();
-        for (IBodyElement bodyElement : sourceBody.getBodyElements())
-        {
+        for (IBodyElement bodyElement : sourceBody.getBodyElements()) {
             BodyElementType elementType = bodyElement.getElementType();
 
             XmlCursor cursor = tagStartPar.getCTP().newCursor();
-            if (elementType.name().equals(DOC_ELEMENT_TYPE_PARAGRAPH))
-            {
+            if (elementType.name().equals(DOC_ELEMENT_TYPE_PARAGRAPH)) {
                 XWPFParagraph pr = (XWPFParagraph) bodyElement;
                 XWPFParagraph newPar;
                 //we insert a new paragraph in the document and then apply body element to the paragraph (in fact copy)
-                if (tagStartPar.getBody() instanceof XWPFTableCell)
-                {
+                if (tagStartPar.getBody() instanceof XWPFTableCell) {
                     XWPFTableCell parentCell = (XWPFTableCell) tagStartPar.getBody();
                     newPar = parentCell.insertNewParagraph(cursor);
-                }
-                else
-                {
+                } else {
                     newPar = doc.insertNewParagraph(cursor);
                 }
                 copyParagraph(pr, newPar);
-            }
-            else if (elementType.name().equals(DOC_ELEMENT_TYPE_TABLE))
-            {
+            } else if (elementType.name().equals(DOC_ELEMENT_TYPE_TABLE)) {
                 XWPFTable table = (XWPFTable) bodyElement;
                 XWPFTable newTbl;
-                if (tagStartPar.getBody() instanceof XWPFTableCell)
-                {
+                if (tagStartPar.getBody() instanceof XWPFTableCell) {
                     XWPFTableCell parentCell = (XWPFTableCell) tagStartPar.getBody();
                     newTbl = parentCell.insertNewTbl(cursor);
-                }
-                else
-                {
+                } else {
                     newTbl = doc.insertNewTbl(cursor);
                 }
                 copyTable(table, newTbl);
@@ -387,107 +319,79 @@ public class DocxTemplateUtils
         }
     }
 
-    public void storeDocToFile(XWPFDocument doc, String fileName)
-    {
-        try (FileOutputStream fos = new FileOutputStream(fileName))
-        {
+    public void storeDocToFile(XWPFDocument doc, String fileName) {
+        try (FileOutputStream fos = new FileOutputStream(fileName)) {
             doc.write(fos);
-        }
-        catch (IOException ex)
-        {
+        } catch (IOException ex) {
             throw new DocxTemplateFillerTechnicalException(ex);
         }
     }
 
-    public void removeElements(IBody parent, int startIndex, int count)
-    {
-        if (parent instanceof XWPFTableCell)
-        {
+    public void removeElements(IBody parent, int startIndex, int count) {
+        if (parent instanceof XWPFTableCell) {
             XWPFTableCell cell = (XWPFTableCell) parent;
             List<IBodyElement> bodyElementsRef = getBodyElementsRef(cell);
             removeElementFromTableCell(startIndex, count, cell, bodyElementsRef);
-        }
-        else
-        {
-            for (int i = 0; i < count; i++)
-            {
+        } else {
+            for (int i = 0; i < count; i++) {
                 parent.getXWPFDocument().removeBodyElement(startIndex);
             }
         }
     }
 
-    private void removeElementFromTableCell(int startIndex, int count, XWPFTableCell cell, List<IBodyElement> bodyElementsRef)
-    {
+    private void removeElementFromTableCell(int startIndex, int count, XWPFTableCell cell, List<IBodyElement> bodyElementsRef) {
         boolean isLastParagraph = false;
-        for (int i = 0; i < count; i++)
-        {
+        for (int i = 0; i < count; i++) {
             IBodyElement element = bodyElementsRef.get(startIndex);
-            if (element instanceof XWPFParagraph)
-            {
+            if (element instanceof XWPFParagraph) {
                 int realParIndex = getParagraphIndex(bodyElementsRef, (XWPFParagraph) element);
                 isLastParagraph = realParIndex == cell.getParagraphs().size() - 1;
-                if (isLastParagraph)
-                {
+                if (isLastParagraph) {
                     clearRuns((XWPFParagraph) element);
                     break;
-                }
-                else
-                {
+                } else {
                     cell.getParagraphs().remove(realParIndex);
                     cell.getCTTc().removeP(realParIndex);
                 }
-            }
-            else if (element instanceof XWPFTable)
-            {
+            } else if (element instanceof XWPFTable) {
                 int realTableIndex = getTableIndex(bodyElementsRef, (XWPFTable) element);
                 getTablesRef(cell).remove(realTableIndex);
                 cell.getCTTc().removeTbl(realTableIndex);
             }
-            if (!isLastParagraph)
-            {
+            if (!isLastParagraph) {
                 bodyElementsRef.remove(startIndex);
             }
         }
     }
 
-    public void clearRuns(XWPFParagraph par)
-    {
-        while (par.getRuns().size() > 1)
-        {
+    public void clearRuns(XWPFParagraph par) {
+        while (par.getRuns().size() > 1) {
             par.removeRun(0);
         }
         XWPFRun run = par.getRuns().get(0);
         run.setText("", 0);
     }
 
-    private int getParagraphIndex(List<IBodyElement> bodyElementsRef, XWPFParagraph paragraph)
-    {
+    private int getParagraphIndex(List<IBodyElement> bodyElementsRef, XWPFParagraph paragraph) {
         int index = -1;
-        for (IBodyElement elem : bodyElementsRef)
-        {
-            if (elem instanceof XWPFParagraph)
-            {
+        for (IBodyElement elem : bodyElementsRef) {
+            if (elem instanceof XWPFParagraph) {
                 index++;
             }
-            if (elem == paragraph)
-            {
+            if (elem == paragraph) {
                 return index;
             }
         }
         return -1;
     }
 
-    private int getTableIndex(List<IBodyElement> bodyElementsRef, XWPFTable table)
-    {
+    private int getTableIndex(List<IBodyElement> bodyElementsRef, XWPFTable table) {
         int index = -1;
-        for (IBodyElement elem : bodyElementsRef)
-        {
-            if (elem instanceof XWPFTable)
-            {
+        for (IBodyElement elem : bodyElementsRef) {
+            if (elem instanceof XWPFTable) {
                 index++;
             }
-            if (elem == table)
-            {
+            if (elem == table) {
                 return index;
             }
         }
@@ -500,16 +404,12 @@ public class DocxTemplateUtils
      * @param cell
      * @return
      */
-    private List<IBodyElement> getBodyElementsRef(XWPFTableCell cell)
-    {
-        try
-        {
+    private List<IBodyElement> getBodyElementsRef(XWPFTableCell cell) {
+        try {
             Field beField = cell.getClass().getDeclaredField("bodyElements");
             beField.setAccessible(true);
             return (List<IBodyElement>) beField.get(cell);
-        }
-        catch (NoSuchFieldException | IllegalAccessException e)
-        {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new DocxTemplateFillerTechnicalException(e);
         }
     }
@@ -520,16 +420,12 @@ public class DocxTemplateUtils
      * @param cell
      * @return
      */
-    private List<XWPFTable> getTablesRef(XWPFTableCell cell)
-    {
-        try
-        {
+    private List<XWPFTable> getTablesRef(XWPFTableCell cell) {
+        try {
             Field beField = cell.getClass().getDeclaredField("tables");
             beField.setAccessible(true);
             return (List<XWPFTable>) beField.get(cell);
-        }
-        catch (NoSuchFieldException | IllegalAccessException e)
-        {
+        } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new DocxTemplateFillerTechnicalException(e);
         }
     }

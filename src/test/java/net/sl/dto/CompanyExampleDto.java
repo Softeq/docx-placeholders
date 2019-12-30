@@ -10,29 +10,24 @@ import java.util.List;
  *
  * @author slapitsky
  */
-public class CompanyExampleDto
-{
+public class CompanyExampleDto {
     private String companyName;
 
     private List<CompanyProjectDto> projects;
 
-    public String getCompanyName()
-    {
+    public String getCompanyName() {
         return companyName;
     }
 
-    public void setCompanyName(String companyName)
-    {
+    public void setCompanyName(String companyName) {
         this.companyName = companyName;
     }
 
-    public List<CompanyProjectDto> getProjects()
-    {
+    public List<CompanyProjectDto> getProjects() {
         return projects;
     }
 
-    public void setProjects(List<CompanyProjectDto> projects)
-    {
+    public void setProjects(List<CompanyProjectDto> projects) {
         this.projects = projects;
     }
 }

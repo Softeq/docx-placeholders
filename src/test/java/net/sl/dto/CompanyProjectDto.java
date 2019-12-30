@@ -10,29 +10,24 @@ import java.util.List;
  *
  * @author slapitsky
  */
-public class CompanyProjectDto
-{
+public class CompanyProjectDto {
     private String projectName;
 
     private List<DeveloperDto> developers;
 
-    public String getProjectName()
-    {
+    public String getProjectName() {
         return projectName;
     }
 
-    public void setProjectName(String projectName)
-    {
+    public void setProjectName(String projectName) {
         this.projectName = projectName;
     }
 
-    public List<DeveloperDto> getDevelopers()
-    {
+    public List<DeveloperDto> getDevelopers() {
         return developers;
     }
 
-    public void setDevelopers(List<DeveloperDto> developers)
-    {
+    public void setDevelopers(List<DeveloperDto> developers) {
         this.developers = developers;
     }
 }

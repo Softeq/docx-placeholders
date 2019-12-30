@@ -8,21 +8,17 @@ package net.sl.exception;
  *
  * @author slapitsky
  */
-public class DocxTemplateFillerTechnicalException extends RuntimeException
-{
+public class DocxTemplateFillerTechnicalException extends RuntimeException {
 
-    public DocxTemplateFillerTechnicalException(String message)
-    {
+    public DocxTemplateFillerTechnicalException(String message) {
         this(message, null);
     }
 
-    public DocxTemplateFillerTechnicalException(Exception e)
-    {
+    public DocxTemplateFillerTechnicalException(Exception e) {
         this(null, e);
     }
 
-    public DocxTemplateFillerTechnicalException(String message, Exception e)
-    {
+    public DocxTemplateFillerTechnicalException(String message, Exception e) {
         super(message, e);
     }
 }

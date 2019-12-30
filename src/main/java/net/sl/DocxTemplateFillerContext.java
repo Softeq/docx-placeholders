@@ -2,7 +2,6 @@ package net.sl;
 
 import net.sl.exception.DocxTemplateFillerException;
 import net.sl.processor.TagProcessor;
-
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 
 import java.util.ArrayDeque;
@@ -30,17 +29,7 @@ public class DocxTemplateFillerContext
 
     private List<TagProcessor> processors = new ArrayList<>();
 
-    private Deque<String> tagsQueue = new ArrayDeque<>();
-
-    public Deque<String> getTagsQueue()
-    {
-        return tagsQueue;
-    }
-
-    public void setTagsQueue(Deque<String> tagsQueue)
-    {
-        this.tagsQueue = tagsQueue;
-    }
+    private Deque<StackContext> tagsQueue = new ArrayDeque<>();
 
     public IBodyElement process(TagInfo tag, IBodyElement elem) throws DocxTemplateFillerException
     {
@@ -91,13 +80,41 @@ public class DocxTemplateFillerContext
         this.tagStart = tagStart;
     }
 
-    public String getTagEnd()
-    {
+    public String getTagEnd() {
         return tagEnd != null ? tagEnd : DocxTemplateUtils.DEFAULT_TAG_END;
     }
 
-    public void setTagEnd(String tagEnd)
-    {
+    public void setTagEnd(String tagEnd) {
         this.tagEnd = tagEnd;
+    }
+
+    public Object getRootValue() {
+        return tagsQueue.getFirst().getValue();
+    }
+
+    public void push(TagInfo tag, Object rootValue) {
+        tagsQueue.push(new StackContext(tag, rootValue));
+    }
+
+    public void pop() {
+        tagsQueue.pop();
+    }
+
+    public static class StackContext {
+        private final TagInfo tag;
+        private final Object value;
+
+        public StackContext(TagInfo tag, Object value) {
+            this.tag = tag;
+            this.value = value;
+        }
+
+        public TagInfo getTag() {
+            return tag;
+        }
+
+        public Object getValue() {
+            return value;
+        }
     }
 }

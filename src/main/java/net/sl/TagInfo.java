@@ -43,13 +43,20 @@ public class TagInfo
         this.tagStartOffset = tagStartOffset;
     }
 
-    public boolean isTagWithBody()
-    {
+    public boolean isTagWithBody() {
         return isTagWithBody;
     }
 
-    public void setTagWithBody(boolean tagWithBody)
-    {
+    public void setTagWithBody(boolean tagWithBody) {
         isTagWithBody = tagWithBody;
+    }
+
+    @Override
+    public String toString() {
+        return "TagInfo{" +
+                "tagText='" + tagText + '\'' +
+                ", tagStartOffset=" + tagStartOffset +
+                ", isTagWithBody=" + isTagWithBody +
+                '}';
     }
 }

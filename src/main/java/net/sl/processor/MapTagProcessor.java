@@ -3,7 +3,6 @@ package net.sl.processor;
 import net.sl.DocxTemplateFillerContext;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -20,36 +19,30 @@ import java.util.Map;
  *
  * @author slapitsky
  */
-public class MapTagProcessor extends AbstractTagProcessor implements TagProcessor
-{
+public class MapTagProcessor extends AbstractTagProcessor implements TagProcessor {
 
     private Map<String, String> tagValuesMap;
 
-    public MapTagProcessor(Map<String, String> tagValuesMap)
-    {
+    public MapTagProcessor(Map<String, String> tagValuesMap) {
         this.tagValuesMap = tagValuesMap;
     }
 
     @Override
-    public boolean canProcessTag(TagInfo tag)
-    {
+    public boolean canProcessTag(TagInfo tag) {
         return tagValuesMap.containsKey(tag.getTagText());
     }
 
     @Override
     public IBodyElement process(TagInfo tag, IBodyElement elem, DocxTemplateFillerContext context)
-            throws DocxTemplateFillerException
-    {
+            throws DocxTemplateFillerException {
         fillTagPlaceholderWithValue((XWPFParagraph) elem, tag, getTagValue(tag), context);
         return elem;
     }
 
-    private String getTagValue(TagInfo tag)
-    {
+    private String getTagValue(TagInfo tag) {
         //get tag text value and store to the run
         String tagValue = tagValuesMap.get(tag.getTagText());
-        if (tagValue == null)
-        {
+        if (tagValue == null) {
             tagValue = StringUtils.EMPTY;
         }
 

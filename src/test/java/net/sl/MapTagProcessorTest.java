@@ -2,7 +2,6 @@ package net.sl;
 
 import net.sl.exception.DocxTemplateFillerException;
 import net.sl.processor.MapTagProcessor;
-
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -24,17 +23,14 @@ import java.util.Map;
  *
  * @author slapitsky
  */
-public class MapTagProcessorTest
-{
+public class MapTagProcessorTest {
 
     private DocxTemplateFiller filler = new DocxTemplateFiller();
 
     @Test
-    public void testFilling()
-    {
+    public void testFilling() {
         try (InputStream templateIs = getClass().getResourceAsStream("/net/sl/MapTagProcessorTest-template.docx");
-             ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();)
-        {
+             ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();) {
             Map<String, String> placeholdersValuesMap = Collections.singletonMap("placeholder", "value");
             DocxTemplateFillerContext context = new DocxTemplateFillerContext();
             context.setProcessors(Collections.singletonList(new MapTagProcessor(placeholdersValuesMap)));
@@ -42,15 +38,12 @@ public class MapTagProcessorTest
             Assert.assertNotEquals(0, filledTemplateOs.size());
 
             try (InputStream is = new ByteArrayInputStream(filledTemplateOs.toByteArray());
-                 XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));)
-            {
+                 XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
                 Assert.assertTrue(doc.getBodyElements().get(0) instanceof XWPFParagraph);
                 XWPFParagraph par = (XWPFParagraph) doc.getBodyElements().get(0);
                 Assert.assertTrue(par.getText().contains("value"));
             }
-        }
-        catch (IOException | InvalidFormatException | DocxTemplateFillerException ex)
-        {
+        } catch (IOException | InvalidFormatException | DocxTemplateFillerException ex) {
             Assert.fail();
         }
     }

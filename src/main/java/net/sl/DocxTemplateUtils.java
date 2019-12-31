@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * All the collateral methods used to fill templates logic and processors.
+ * All the collateral methods used to fill templates' placeholders in tag processors.
  * <p/>
  * Created on 10/2/2019.
  * <p/>
@@ -38,6 +38,7 @@ import java.util.List;
  * @author slapitsky
  */
 public class DocxTemplateUtils {
+
     public static final String PAGE_BREAK = "\n";
 
     public static final String COMMA_SEPARATOR = ", ";
@@ -58,11 +59,20 @@ public class DocxTemplateUtils {
         return instance;
     }
 
+    /**
+     * Creates deep cloned document (root to the copies of the specified list of body elements)
+     *
+     * @param source list of body elements to be cloned
+     * @return a document - new root for cloned elements
+     * @throws IOException
+     */
     public XWPFDocument deepCloneElements(List<IBodyElement> source) throws IOException {
+        //create a new document to add copies to
         try (XWPFDocument targetDoc = new XWPFDocument()) {
             for (IBodyElement bodyElement : source) {
                 BodyElementType elementType = bodyElement.getElementType();
 
+                //for each element (table or paragraph) create a copy and add to the document root
                 if (elementType.name().equals(DOC_ELEMENT_TYPE_PARAGRAPH)) {
                     XWPFParagraph pr = (XWPFParagraph) bodyElement;
                     pr.getRuns().forEach(run -> {
@@ -82,6 +92,9 @@ public class DocxTemplateUtils {
                     targetDoc.setTable(pos, table);
                 }
             }
+
+            //create real copy by saving the doc and read it back
+            //the logic is used to prevent locks and reusing using subelements' properties - deep clone
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             targetDoc.write(out);
             XWPFDocument resDoc = new XWPFDocument(new ByteArrayInputStream(out.toByteArray()));
@@ -89,6 +102,12 @@ public class DocxTemplateUtils {
         }
     }
 
+    /**
+     * Copies content (runs) and all the properties (PRs) of source paraghraph to the target paragraph.
+     *
+     * @param source
+     * @param target
+     */
     public void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
         target.getCTP().setPPr(source.getCTP().getPPr());
         // copy hyperlinks
@@ -126,6 +145,12 @@ public class DocxTemplateUtils {
         }
     }
 
+    /**
+     * Returns run's text
+     *
+     * @param run
+     * @return text of the run
+     */
     public String getRunText(XWPFRun run) {
         StringBuilder sb = new StringBuilder();
         int partsCount = run.getCTR().getTArray().length;
@@ -136,7 +161,7 @@ public class DocxTemplateUtils {
     }
 
     /**
-     * Copies all content of table (rows/cells and inner content) from source to target.
+     * Copies all content of table (rows/cells' properties and inner content) from source to target.
      *
      * @param source
      * @param target
@@ -169,6 +194,13 @@ public class DocxTemplateUtils {
 
     }
 
+    /**
+     * Copies all content of cell from source to target.
+     *
+     * @param targetCell target
+     * @param cell       source
+     * @throws IOException
+     */
     private void copyTableCell(XWPFTableCell targetCell, XWPFTableCell cell) throws IOException {
         targetCell.getCTTc().setTcPr(cell.getCTTc().getTcPr());
         XmlCursor cursor = targetCell.getParagraphArray(0).getCTP().newCursor();
@@ -189,12 +221,26 @@ public class DocxTemplateUtils {
         }
     }
 
+    /**
+     * Creates deep cloned document with the table copy and returns cloned table
+     *
+     * @param source source table
+     * @return
+     * @throws IOException
+     */
     private XWPFTable deepCloneTable(XWPFTable source) throws IOException {
         XWPFDocument copyDoc = deepCloneElements(Collections.singletonList(source));
 
         return copyDoc.getTables().get(0);
     }
 
+    /**
+     * Adds hiperlink to the specified paragraph
+     *
+     * @param par  target paragraph to add hiperlink
+     * @param text hiperlink text
+     * @param url  hiperlink reference URL
+     */
     public void addHyperlink(XWPFParagraph par, String text, String url) {
         String rId = par.getDocument().getPackagePart().addExternalRelationship(url, XWPFRelation.HYPERLINK.getRelation()).getId();
         CTHyperlink hyperlink = par.getCTP().addNewHyperlink();
@@ -206,19 +252,26 @@ public class DocxTemplateUtils {
         hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
     }
 
-    public IBodyElement getNextSibling(IBodyElement element) {
-        IBody body = element.getBody();
-        for (int i = 0; i < body.getBodyElements().size(); i++) {
-            if (body.getBodyElements().get(i) == element) {
-                if (i + 1 < body.getBodyElements().size()) {
-                    return body.getBodyElements().get(i + 1);
-                }
+    /**
+     * Returns next sibling body element
+     *
+     * @param elem source element
+     * @return next body element on the same level (the same parent).
+     */
+    public IBodyElement getNextSibling(IBodyElement elem) {
+        for (int i = 0; i < elem.getBody().getBodyElements().size() - 1; i++) {
+            if (elem.getBody().getBodyElements().get(i) == elem) {
+                return elem.getBody().getBodyElements().get(i + 1);
             }
         }
 
         return null;
     }
 
+    /**
+     * @param element
+     * @return index of the element (number of child of the element's parent)
+     */
     public int getElementIndex(IBodyElement element) {
         IBody body = element.getBody();
         for (int i = 0; i < body.getBodyElements().size(); i++) {
@@ -230,11 +283,29 @@ public class DocxTemplateUtils {
         return -1;
     }
 
+    /**
+     * Gets tag (if exists) in the specified body element
+     *
+     * @param elem    body element
+     * @param context filler context to define tag start and end tokens
+     * @return
+     * @throws DocxTemplateFillerException
+     */
     public TagInfo getTag(IBodyElement elem, DocxTemplateFillerContext context) throws DocxTemplateFillerException {
         return getTag(elem, 0, context);
     }
 
-    public TagInfo getTag(IBodyElement elem, int offset, DocxTemplateFillerContext context) throws DocxTemplateFillerException {
+    /**
+     * Gets tag (if exists) in the specified body element after offset (e.g. tag in the mid of paragraph)
+     *
+     * @param elem    body element
+     * @param offset  start offset (e.g. mid of the paragraph)
+     * @param context filler context to define tag start and end tokens
+     * @return
+     * @throws DocxTemplateFillerException
+     */
+    public TagInfo getTag(IBodyElement elem, int offset, DocxTemplateFillerContext context)
+            throws DocxTemplateFillerException {
         if (elem instanceof XWPFParagraph) {
             String text = ((XWPFParagraph) elem).getText();
             int tagStartOffset = text.indexOf(context.getTagStart(), offset);
@@ -255,11 +326,25 @@ public class DocxTemplateUtils {
         return null;
     }
 
+    /**
+     * Fills tags placeholders in the specified body element
+     *
+     * @param body
+     * @param context
+     * @throws DocxTemplateFillerException
+     */
     public void fillTags(IBody body, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException {
         fillTags(body.getBodyElements(), context);
     }
 
+    /**
+     * Fills tags placeholders in the specified table
+     *
+     * @param table
+     * @param context
+     * @throws DocxTemplateFillerException
+     */
     public void fillTags(XWPFTable table, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException {
 
@@ -271,6 +356,13 @@ public class DocxTemplateUtils {
         }
     }
 
+    /**
+     * Fills tags placeholders in the specified body elements list
+     *
+     * @param bodyElements
+     * @param context
+     * @throws DocxTemplateFillerException
+     */
     public void fillTags(List<IBodyElement> bodyElements, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException {
         if (!bodyElements.isEmpty()) {
@@ -283,11 +375,18 @@ public class DocxTemplateUtils {
                 } else if (bodyElem instanceof XWPFTable) {
                     fillTags((XWPFTable) bodyElem, context);
                 }
-                bodyElem = context.getNextSibling(bodyElem);
+                bodyElem = DocxTemplateUtils.getInstance().getNextSibling(bodyElem);
             }
         }
     }
 
+    /**
+     * Inserts elements (children of specified source body) after the target paragraph
+     *
+     * @param sourceBody  root for the elements to be inserted
+     * @param tagStartPar target paragraph to insert elements after
+     * @throws IOException
+     */
     public void insertBodyElementsAfterParagraph(IBody sourceBody, XWPFParagraph tagStartPar) throws IOException {
         XWPFDocument doc = tagStartPar.getDocument();
         for (IBodyElement bodyElement : sourceBody.getBodyElements()) {
@@ -319,6 +418,12 @@ public class DocxTemplateUtils {
         }
     }
 
+    /**
+     * Stores the specified docuemnt to file. Used for tests mostly
+     *
+     * @param doc
+     * @param fileName
+     */
     public void storeDocToFile(XWPFDocument doc, String fileName) {
         try (FileOutputStream fos = new FileOutputStream(fileName)) {
             doc.write(fos);
@@ -327,11 +432,17 @@ public class DocxTemplateUtils {
         }
     }
 
+    /**
+     * Removes 'count' child elements starting from the 'startIndex' of the 'parent'
+     *
+     * @param parent
+     * @param startIndex
+     * @param count
+     */
     public void removeElements(IBody parent, int startIndex, int count) {
         if (parent instanceof XWPFTableCell) {
             XWPFTableCell cell = (XWPFTableCell) parent;
-            List<IBodyElement> bodyElementsRef = getBodyElementsRef(cell);
-            removeElementFromTableCell(startIndex, count, cell, bodyElementsRef);
+            removeElementFromTableCell(startIndex, count, cell);
         } else {
             for (int i = 0; i < count; i++) {
                 parent.getXWPFDocument().removeBodyElement(startIndex);
@@ -339,7 +450,17 @@ public class DocxTemplateUtils {
         }
     }
 
-    private void removeElementFromTableCell(int startIndex, int count, XWPFTableCell cell, List<IBodyElement> bodyElementsRef) {
+    /**
+     * Removes 'count' child elements starting from the 'startIndex' from the cell.
+     *
+     * @param startIndex
+     * @param count
+     * @param cell
+     */
+    private void removeElementFromTableCell(int startIndex, int count, XWPFTableCell cell) {
+        //cell has no simple access to the children elements
+        //getter returns just a copy so we use a separate method to extract proper collection
+        List<IBodyElement> bodyElementsRef = getBodyElementsRef(cell);
         boolean isLastParagraph = false;
         for (int i = 0; i < count; i++) {
             IBodyElement element = bodyElementsRef.get(startIndex);
@@ -364,6 +485,11 @@ public class DocxTemplateUtils {
         }
     }
 
+    /**
+     * Removes the paragrraph runs but the last one must remain with empty string content
+     *
+     * @param par
+     */
     public void clearRuns(XWPFParagraph par) {
         while (par.getRuns().size() > 1) {
             par.removeRun(0);
@@ -372,6 +498,13 @@ public class DocxTemplateUtils {
         run.setText("", 0);
     }
 
+    /**
+     * Gets index of the paragraph in the specified list (or -1) if the par is not found
+     *
+     * @param bodyElementsRef
+     * @param paragraph
+     * @return
+     */
     private int getParagraphIndex(List<IBodyElement> bodyElementsRef, XWPFParagraph paragraph) {
         int index = -1;
         for (IBodyElement elem : bodyElementsRef) {
@@ -385,6 +518,13 @@ public class DocxTemplateUtils {
         return -1;
     }
 
+    /**
+     * Gets index of the table in the specified list (or -1) if the table is not found
+     *
+     * @param bodyElementsRef
+     * @param table
+     * @return
+     */
     private int getTableIndex(List<IBodyElement> bodyElementsRef, XWPFTable table) {
         int index = -1;
         for (IBodyElement elem : bodyElementsRef) {
@@ -399,7 +539,8 @@ public class DocxTemplateUtils {
     }
 
     /**
-     * It's a dirty hack but I cannot find proper way to remove elements from cell's body elements
+     * It's a dirty hack but I cannot find proper way to remove elements from cell's body elements.
+     * Reflection is used to extract direct reference to the cell children list
      *
      * @param cell
      * @return
@@ -416,6 +557,7 @@ public class DocxTemplateUtils {
 
     /**
      * It's a dirty hack but I cannot find proper way to remove elements from cell's tables list
+     * Reflection is used to extract direct reference to the cell children list
      *
      * @param cell
      * @return

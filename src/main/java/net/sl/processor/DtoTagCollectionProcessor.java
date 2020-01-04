@@ -29,13 +29,13 @@ import java.util.List;
  */
 public class DtoTagCollectionProcessor extends AbstractTagProcessor implements TagProcessor {
 
-    public static final String DTO_COLLECTION_START_TAG_PREFIX = "dtoCollection:";
+    public static final String TAG_PREFIX_COLLECTION_START = "collection:";
 
-    public static final String DTO_COLLECTION_END_TAG_PREFIX = "/dtoCollection";
+    public static final String TAG_PREFIX_COLLECTION_END = "/collection";
 
     @Override
     public boolean canProcessTag(TagInfo tag) {
-        return tag.getTagText().startsWith(DTO_COLLECTION_START_TAG_PREFIX);
+        return tag.getTagText().startsWith(TAG_PREFIX_COLLECTION_START);
     }
 
     @Override
@@ -51,7 +51,7 @@ public class DtoTagCollectionProcessor extends AbstractTagProcessor implements T
      * @return tag text without collection prefix
      */
     private String getRealTagName(TagInfo tag) {
-        return tag.getTagText().substring(DTO_COLLECTION_START_TAG_PREFIX.length());
+        return tag.getTagText().substring(TAG_PREFIX_COLLECTION_START.length());
     }
 
     /**
@@ -111,10 +111,10 @@ public class DtoTagCollectionProcessor extends AbstractTagProcessor implements T
         while (nextElem != null) {
             TagInfo nextElemTag = DocxTemplateUtils.getInstance().getTag(nextElem, context);
             //if we get one more the same tag (nested collection) increase nested tag count to include all nested onses
-            if (nextElemTag != null && nextElemTag.getTagText().startsWith(DTO_COLLECTION_START_TAG_PREFIX)) {
+            if (nextElemTag != null && nextElemTag.getTagText().startsWith(TAG_PREFIX_COLLECTION_START)) {
                 //opening nested tag
                 nestedCount++;
-            } else if (nextElemTag != null && nextElemTag.getTagText().startsWith(DTO_COLLECTION_END_TAG_PREFIX)) {
+            } else if (nextElemTag != null && nextElemTag.getTagText().startsWith(TAG_PREFIX_COLLECTION_END)) {
                 //found tag end. If no nested tags found the tag body end is achieved
                 if (nestedCount == 0) {
                     break;

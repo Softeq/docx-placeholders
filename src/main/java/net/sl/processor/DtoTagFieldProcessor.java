@@ -24,11 +24,11 @@ import java.lang.reflect.InvocationTargetException;
  */
 public class DtoTagFieldProcessor extends AbstractTagProcessor implements TagProcessor {
 
-    public static final String DTO_PATH_TAG_PREFIX = "dtoField:";
+    public static final String TAG_PREFIX_FIELD = "field:";
 
     @Override
     public boolean canProcessTag(TagInfo tag) {
-        return tag.getTagText().startsWith(DTO_PATH_TAG_PREFIX);
+        return tag.getTagText().startsWith(TAG_PREFIX_FIELD);
     }
 
     @Override
@@ -62,7 +62,7 @@ public class DtoTagFieldProcessor extends AbstractTagProcessor implements TagPro
     }
 
     private String getRealTagName(TagInfo tag) {
-        return tag.getTagText().substring(DTO_PATH_TAG_PREFIX.length());
+        return tag.getTagText().substring(TAG_PREFIX_FIELD.length());
     }
 
 }

@@ -4,21 +4,21 @@ import net.sl.DocxTemplateFillerContext;
 import net.sl.DocxTemplateUtils;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
+import net.sl.exception.DocxTemplateFillerTechnicalException;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
-import org.apache.poi.xwpf.usermodel.UnderlinePatterns;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
-import org.apache.poi.xwpf.usermodel.XWPFHyperlinkRun;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
-import org.apache.poi.xwpf.usermodel.XWPFRelation;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Attribute;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHyperlink;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,23 +29,25 @@ import java.util.Map;
 /**
  * The processor is based on DTO fields
  * <p/>
- * The processor can fill link template placeholder using fields of the DTO for link, text, color etc
+ * The processor can fill image template placeholders from POJO DTO fields
  * <p/>
  * Created on 10/4/2019.
  * <p/>
  *
  * @author slapitsky
  */
-public class DtoTagLinkProcessor extends AbstractTagProcessor implements TagProcessor {
+public class DtoTagImageProcessor extends AbstractTagProcessor implements TagProcessor {
 
-    public static final String TAG_PREFIX_LINK = "link:";
-    public static final String PROPERTY_TEXT_REF_NAME = "text";
-    public static final String PROPERTY_URL_REF_NAME = "url";
-    public static final String PROPERTY_COLOR_REF_NAME = "color";
+    public static final String TAG_PREFIX_IMAGE = "image:";
+    public static final String PROPERTY_TITLE_REF_NAME = "title";
+    public static final String PROPERTY_SOURCE_REF_NAME = "source";
+    public static final String PROPERTY_FORMAT_REF_NAME = "imageFormat";
+    public static final String PROPERTY_PIXELS_WIDTH_REF_NAME = "width";
+    public static final String PROPERTY_PIXELS_HEIGHT_REF_NAME = "height";
 
     @Override
     public boolean canProcessTag(TagInfo tag) {
-        return tag.getTagText().startsWith(TAG_PREFIX_LINK);
+        return tag.getTagText().startsWith(TAG_PREFIX_IMAGE);
     }
 
     @Override
@@ -53,14 +55,21 @@ public class DtoTagLinkProcessor extends AbstractTagProcessor implements TagProc
             throws DocxTemplateFillerException {
         try {
             Map<String, String> tagProprtiesMap = getTagLinkData(tag);
-            String linkValueRefField = tagProprtiesMap.get(PROPERTY_TEXT_REF_NAME);
-            String linkUrlRefField = tagProprtiesMap.get(PROPERTY_URL_REF_NAME);
-            String linkColorRefField = tagProprtiesMap.get(PROPERTY_COLOR_REF_NAME);
+            String titleRefField = tagProprtiesMap.get(PROPERTY_TITLE_REF_NAME);
+            String sourceRefField = tagProprtiesMap.get(PROPERTY_SOURCE_REF_NAME);
+            String formatRefField = tagProprtiesMap.get(PROPERTY_FORMAT_REF_NAME);
+            String widthRefField = tagProprtiesMap.get(PROPERTY_PIXELS_WIDTH_REF_NAME);
+            String heightRefField = tagProprtiesMap.get(PROPERTY_PIXELS_HEIGHT_REF_NAME);
 
-            String linkText = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), linkValueRefField);
-            String linkUrl = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), linkUrlRefField);
-            String linkColor = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), linkColorRefField);
-            fillLink(tag, (XWPFParagraph) elem, linkText, linkUrl, linkColor, context);
+            String title = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), titleRefField);
+            String formatStr = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), formatRefField);
+            int format = formatStr != null && (formatStr.contains("jpeg") || formatStr.contains("jpg")) ?
+                    org.apache.poi.xwpf.usermodel.Document.PICTURE_TYPE_JPEG :
+                    org.apache.poi.xwpf.usermodel.Document.PICTURE_TYPE_PNG;
+            Integer w = (Integer) PropertyUtils.getSimpleProperty(context.getRootValue(), widthRefField);
+            Integer h = (Integer) PropertyUtils.getSimpleProperty(context.getRootValue(), heightRefField);
+            InputStream source = (InputStream) PropertyUtils.getSimpleProperty(context.getRootValue(), sourceRefField);
+            fillImage(tag, (XWPFParagraph) elem, title, format, source, w, h, context);
             return DocxTemplateUtils.getInstance().getNextSibling(elem);
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | IOException e) {
             throw new DocxTemplateFillerException("Cannot access value for tag " + tag.getTagText(), e);
@@ -79,7 +88,13 @@ public class DtoTagLinkProcessor extends AbstractTagProcessor implements TagProc
         return tagValuesMap;
     }
 
-    protected void fillLink(TagInfo tag, XWPFParagraph par, String text, String url, String color, DocxTemplateFillerContext context)
+    protected void fillImage(TagInfo tag, XWPFParagraph par,
+                             String title,
+                             int imageFormat,
+                             InputStream imageStream,
+                             int w,
+                             int h,
+                             DocxTemplateFillerContext context)
             throws DocxTemplateFillerException, IOException {
         //position in the paragraph where placeholder ends
         int tagEndOffset = tag.getTagStartOffset() + context.getTagStart().length() + tag.getTagText().length() + context.getTagEnd().length();
@@ -139,22 +154,20 @@ public class DtoTagLinkProcessor extends AbstractTagProcessor implements TagProc
         for (int i = parRuns.size() - 1; i > tagStartRunIndex; i--) {
             par.removeRun(i);
         }
-        //insert link
-        String rId = par.getDocument().getPackagePart().addExternalRelationship(url, XWPFRelation.HYPERLINK.getRelation()).getId();
-        CTHyperlink hyperlink = par.getCTP().addNewHyperlink();
-        hyperlink.setId(rId);
-        hyperlink.addNewR();
-        XWPFHyperlinkRun hyperlinkRun = new XWPFHyperlinkRun(hyperlink, hyperlink.getRArray(0), par);
-        hyperlinkRun.setText(text);
-        hyperlinkRun.setColor(color);
-        hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
+        //insert image run
+        XWPFRun targetRun = par.createRun();
 
+        try {
+            targetRun.addPicture(imageStream, imageFormat, title, Units.pixelToEMU(w), Units.pixelToEMU(h));
+        } catch (InvalidFormatException | IOException e) {
+            throw new DocxTemplateFillerTechnicalException("Unexpected image inserting error ", e);
+        }
         //reinsert runs back by coping runs from cloned paragraph
         DocxTemplateUtils.getInstance().copyParagraph(parClone, par);
     }
 
     private String getRealTagText(TagInfo tag) {
-        return tag.getTagText().substring(TAG_PREFIX_LINK.length());
+        return tag.getTagText().substring(TAG_PREFIX_IMAGE.length());
     }
 
 }

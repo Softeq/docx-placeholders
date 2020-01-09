@@ -6,7 +6,9 @@ import net.sl.exception.DocxTemplateFillerException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 
+import java.io.IOException;
 import java.util.Map;
 
 /**
@@ -35,7 +37,12 @@ public class MapTagProcessor extends AbstractTagProcessor implements TagProcesso
     @Override
     public IBodyElement process(TagInfo tag, IBodyElement elem, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException {
-        fillTagPlaceholderWithValue((XWPFParagraph) elem, tag, getTagValue(tag), context);
+
+        try {
+            fillTag(tag, (XWPFParagraph) elem, getTagValue(tag), context);
+        } catch (IOException e) {
+            throw new DocxTemplateFillerException("Cannot fill tag " + tag, e);
+        }
         return elem;
     }
 
@@ -49,4 +56,9 @@ public class MapTagProcessor extends AbstractTagProcessor implements TagProcesso
         return tagValue;
     }
 
+    @Override
+    protected void insertRun(XWPFParagraph par, TagInfo tag, Object tagData, DocxTemplateFillerContext context) throws DocxTemplateFillerException {
+        XWPFRun run = par.createRun();
+        run.setText((String) tagData);
+    }
 }

@@ -9,7 +9,9 @@ import org.apache.commons.beanutils.PropertyUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 
 /**
@@ -36,12 +38,10 @@ public class DtoTagFieldProcessor extends AbstractTagProcessor implements TagPro
             throws DocxTemplateFillerException {
         try {
             String tagValue = getStringTagValue(tag, context);
-            fillTagPlaceholderWithValue((XWPFParagraph) elem, tag, tagValue, context);
+            fillTag(tag, (XWPFParagraph) elem, tagValue, context);
 
             return DocxTemplateUtils.getInstance().getNextSibling(elem);
-        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-            DocxTemplateUtils.getInstance().storeDocToFile(((XWPFParagraph) elem).getDocument(),
-                    "d:/temp/_beforeException-" + System.currentTimeMillis() + ".docx");
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | IOException e) {
             throw new DocxTemplateFillerException("Cannot access value for tag " + tag.getTagText(), e);
         }
     }
@@ -65,4 +65,9 @@ public class DtoTagFieldProcessor extends AbstractTagProcessor implements TagPro
         return tag.getTagText().substring(TAG_PREFIX_FIELD.length());
     }
 
+    @Override
+    protected void insertRun(XWPFParagraph par, TagInfo tag, Object tagData, DocxTemplateFillerContext context) throws DocxTemplateFillerException {
+        XWPFRun run = par.createRun();
+        run.setText((String) tagData);
+    }
 }

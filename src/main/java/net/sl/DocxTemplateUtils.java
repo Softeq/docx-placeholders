@@ -112,7 +112,7 @@ public class DocxTemplateUtils {
         target.getCTP().setPPr(source.getCTP().getPPr());
         // copy hyperlinks
         Arrays.stream(source.getCTP().getHyperlinkArray()).forEach(sourceHyperlink ->
-                addHyperlink(target, sourceHyperlink.getAnchor(), sourceHyperlink.getId())
+                addHyperlink(target, sourceHyperlink.getAnchor(), sourceHyperlink.getId(), HYPERLINK_DEFAULT_COLOR)
         );
         for (int i = 0; i < source.getRuns().size(); i++) {
             XWPFRun run = source.getRuns().get(i);
@@ -241,14 +241,14 @@ public class DocxTemplateUtils {
      * @param text hiperlink text
      * @param url  hiperlink reference URL
      */
-    public void addHyperlink(XWPFParagraph par, String text, String url) {
+    public void addHyperlink(XWPFParagraph par, String text, String url, String color) {
         String rId = par.getDocument().getPackagePart().addExternalRelationship(url, XWPFRelation.HYPERLINK.getRelation()).getId();
         CTHyperlink hyperlink = par.getCTP().addNewHyperlink();
         hyperlink.setId(rId);
         hyperlink.addNewR();
         XWPFHyperlinkRun hyperlinkRun = new XWPFHyperlinkRun(hyperlink, hyperlink.getRArray(0), par);
         hyperlinkRun.setText(text);
-        hyperlinkRun.setColor(HYPERLINK_DEFAULT_COLOR);
+        hyperlinkRun.setColor(color);
         hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
     }
 

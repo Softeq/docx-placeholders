@@ -4,12 +4,20 @@ import net.sl.DocxTemplateFillerContext;
 import net.sl.DocxTemplateUtils;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Attribute;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * The abstract class for processors.
@@ -21,84 +29,105 @@ import java.util.List;
  *
  * @author slapitsky
  */
-public class AbstractTagProcessor {
+public abstract class AbstractTagProcessor {
 
     /**
-     * A paragraph where the tag was found is filled with the provided value. The tag's placeholders is replaced with tag value
+     * We detect tag placeholder start and end runs
+     * The start run text is corrected (placeholder text part is removed from the end), the same happens with endTag
+     * placeholder part is removed from the run start.
+     * All the runs between placeholder start and end are removed.
      *
-     * @param par     the paragraph containing tag
-     * @param tag     tag to be replaced
-     * @param value   value to use instead of the placeholder
-     * @param context filler context
+     * @param tag
+     * @param par
+     * @param tagData
+     * @param context
      * @throws DocxTemplateFillerException
+     * @throws IOException
      */
-    protected void fillTagPlaceholderWithValue(XWPFParagraph par, TagInfo tag, String value, DocxTemplateFillerContext context)
-            throws DocxTemplateFillerException {
+    protected void fillTag(TagInfo tag, XWPFParagraph par, Object tagData, DocxTemplateFillerContext context)
+            throws DocxTemplateFillerException, IOException {
         //position in the paragraph where placeholder ends
-        int endIndex = tag.getTagStartOffset() + context.getTagStart().length() + tag.getTagText().length() + ("/" + context.getTagEnd())
-                .length();
+        int tagEndOffset = tag.getTagStartOffset() + context.getTagStart().length() + tag.getTagText().length() + context.getTagEnd().length();
         //we add each run text's length to keep current run start index (in the par)
         int accumulatedTextLength = 0;
-        //run where placeholder starts (to replace it)
-        XWPFRun replaceRun = null;
         //new run text - old text with replaced placeholder
         String newRunText = null;
         List<XWPFRun> parRuns = par.getRuns();
-        //if placeholder's mid is a separate ran the run must be removed totally
-        List<Integer> runsToBeRemoved = new ArrayList<>();
+        int tagStartRunIndex = -1;
+        int tagEndRunIndex = -1;
         for (int i = 0; i < parRuns.size(); i++) {
             XWPFRun run = parRuns.get(i);
             String runText = run.text();
 
-            switch (runText) {
-                case DocxTemplateUtils.PAGE_BREAK:
-                    par.setPageBreak(true);
-                    break;
-                case DocxTemplateUtils.COMMA_SEPARATOR:
-                    if (StringUtils.EMPTY.equals(parRuns.get(i - 1).text())) {
-                        runsToBeRemoved.add(0, i);
-                    }
-                    break;
-                default:
-                    break;
-            }
             int runEndPosition = accumulatedTextLength + runText.length();
+
             if (tag.getTagStartOffset() >= accumulatedTextLength && tag.getTagStartOffset() < runEndPosition) {
-                //insert in this run (placeholder placeHolderStartIndex is in this run)
-                replaceRun = run;
+                //found a run where the placeholder starts
+                tagStartRunIndex = i;
+                //the new text for the starrt run is the text without the placeholder
+                //but the text for the run will be replaced later
                 newRunText = runText.substring(0, tag.getTagStartOffset() - accumulatedTextLength);
-            } else if (accumulatedTextLength > tag.getTagStartOffset()) {
-                if (endIndex >= runEndPosition) {
-                    //the run is located within placeholder's bounds
-                    runsToBeRemoved.add(0, i);
+            }
+            if (tagEndOffset >= accumulatedTextLength && tagEndOffset < runEndPosition) {
+                //found a run where the placeholder ends
+                tagEndRunIndex = i;
+                if (tagStartRunIndex == tagEndRunIndex) {
+                    //the placeholder starts and ends in the same run
                 } else {
-                    //the run has end of placeholder
-                    if (endIndex - accumulatedTextLength > 0) {
-                        String newText = runText.substring(endIndex - accumulatedTextLength);
-                        run.setText(newText, 0);
-                    }
-                    break;
+                    String newEndRunText = runText.substring(runEndPosition - accumulatedTextLength);
+                    run.setText(newEndRunText, 0);
                 }
+                //no need to iterate. we found where the tag placeholder ends
+                //now we can replace text for the run where the placeholder starts
+                run = parRuns.get(tagStartRunIndex);
+                run.setText(newRunText, 0);
+                break;
             }
             accumulatedTextLength += runText.length();
         }
+        //now we have indexes of the placeholder start and end run
+        //all the previous runs must remain
+        //all the runs in between must be removed completely
+        //all the runs after must be removed and reinserted after the link
+        getRunsAfterPlaceholder(parRuns, tagEndRunIndex);
+        //create a copy with all the runs
+        XWPFDocument clonedParagraphDoc = DocxTemplateUtils.getInstance().deepCloneElements(Collections.singletonList(par));
+        XWPFParagraph parClone = clonedParagraphDoc.getParagraphs().get(0);
+        //and remain copies to be reinserted only
+        for (int i = 0; i < tagEndRunIndex; i++) {
+            parClone.removeRun(0);
+        }
 
-        //remove runs inside placeholder
-        for (int removeRunIndex : runsToBeRemoved) {
-            par.removeRun(removeRunIndex);
+        for (int i = parRuns.size() - 1; i > tagStartRunIndex; i--) {
+            par.removeRun(i);
         }
-        if (replaceRun == null) {
-            throw new DocxTemplateFillerException("Cannot replace tag. Paragraph text='" + par.getText() +
-                    "' offset=" + tag.getTagStartOffset() + " tag=" + tag.getTagText());
-        }
-        //remove part of placeholder from run
-        replaceRun.setText(newRunText, 0);
-        XWPFRun tagValueRun = replaceRun;
-        if (newRunText.length() != 0) {
-            tagValueRun = par.createRun();
-        }
-        //and fill value to the run
-        tagValueRun.setText(value);
+        //insert run with the placeholder value
+        insertRun(par, tag, tagData, context);
+
+        //reinsert runs back by coping runs from cloned paragraph
+        DocxTemplateUtils.getInstance().copyParagraph(parClone, par);
     }
 
+    private void getRunsAfterPlaceholder(List<XWPFRun> parRuns, int tagEndRunIndex) {
+        List<XWPFRun> runsAfterPlaceholderToBeReinserted = new ArrayList<>();
+        if (tagEndRunIndex >= 0) { //there are runs after the end of the last placeholder run
+            for (int i = tagEndRunIndex; i < parRuns.size(); i++) {
+                runsAfterPlaceholderToBeReinserted.add(parRuns.get(i));
+            }
+        }
+    }
+
+    protected abstract void insertRun(XWPFParagraph par, TagInfo tag, Object tagData, DocxTemplateFillerContext context)
+            throws DocxTemplateFillerException;
+
+    protected Map<String, String> getTagPropertiesAsMap(String tagText) {
+        Map<String, String> tagValuesMap = new HashMap<>();
+        Document doc = Jsoup.parse("<p " + tagText + "/>");
+        Element link = doc.select("p").first();
+        for (Attribute attr : link.attributes()) {
+            tagValuesMap.put(attr.getKey(), attr.getValue());
+        }
+
+        return tagValuesMap;
+    }
 }

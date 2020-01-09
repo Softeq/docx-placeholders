@@ -14,6 +14,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -28,10 +29,13 @@ public class MapTagProcessorTest {
     private DocxTemplateFiller filler = new DocxTemplateFiller();
 
     @Test
-    public void testFilling() {
+    public void testMapValues() {
         try (InputStream templateIs = getClass().getResourceAsStream("/net/sl/MapTagProcessorTest-template.docx");
              ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();) {
-            Map<String, String> placeholdersValuesMap = Collections.singletonMap("placeholder", "value");
+            Map<String, String> placeholdersValuesMap = new HashMap<String, String>() {{
+                put("firstName", "John");
+                put("lastName", "Smith");
+            }};
             DocxTemplateFillerContext context = new DocxTemplateFillerContext();
             context.setProcessors(Collections.singletonList(new MapTagProcessor(placeholdersValuesMap)));
             filler.fillTemplate(templateIs, filledTemplateOs, context);
@@ -41,7 +45,8 @@ public class MapTagProcessorTest {
                  XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
                 Assert.assertTrue(doc.getBodyElements().get(0) instanceof XWPFParagraph);
                 XWPFParagraph par = (XWPFParagraph) doc.getBodyElements().get(0);
-                Assert.assertTrue(par.getText().contains("value"));
+                Assert.assertTrue(par.getText().contains("John"));
+                Assert.assertTrue(par.getText().contains("Smith"));
             }
         } catch (IOException | InvalidFormatException | DocxTemplateFillerException ex) {
             Assert.fail();

@@ -1,5 +1,7 @@
 package net.sl.dto;
 
+import net.sl.tag.TagImageData;
+
 import java.io.InputStream;
 
 /**
@@ -9,7 +11,7 @@ import java.io.InputStream;
  *
  * @author slapitsky
  */
-public class ImageDto {
+public class ImageDto implements TagImageData {
     private String title;
     private String contentType;
     private InputStream sourceStream;
@@ -28,39 +30,20 @@ public class ImageDto {
         return title;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
     public String getContentType() {
         return contentType;
-    }
-
-    public void setContentType(String contentType) {
-        this.contentType = contentType;
     }
 
     public InputStream getSourceStream() {
         return sourceStream;
     }
 
-    public void setSourceStream(InputStream sourceStream) {
-        this.sourceStream = sourceStream;
-    }
-
     public Integer getWidth() {
         return width;
-    }
-
-    public void setWidth(Integer width) {
-        this.width = width;
     }
 
     public Integer getHeight() {
         return height;
     }
 
-    public void setHeight(Integer height) {
-        this.height = height;
-    }
 }

@@ -4,13 +4,14 @@ import net.sl.DocxTemplateFillerContext;
 import net.sl.DocxTemplateUtils;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
+import net.sl.tag.TagLinkData;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
 
 /**
  * The processor is based on DTO fields
@@ -22,7 +23,7 @@ import java.util.Map;
  *
  * @author slapitsky
  */
-public class DtoTagLinkProcessor extends AbstractTagProcessor implements TagProcessor {
+public class LinkTagProcessor extends AbstractTagProcessor implements TagProcessor {
 
     public static final String TAG_PREFIX_LINK = "link:";
     public static final String PROPERTY_TEXT_REF_NAME = "text";
@@ -53,17 +54,17 @@ public class DtoTagLinkProcessor extends AbstractTagProcessor implements TagProc
     protected void insertRun(XWPFParagraph par, TagInfo tag, Object tagData, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException {
         try {
+            //we read from the context Link contract - the TagLinkData interface.
+            //the interface has getters to return link attributes
+            String tagText = getRealTagText(tag);
 
-            Map<String, String> tagProprtiesMap = getTagPropertiesAsMap(getRealTagText(tag));
-            String linkValueRefField = tagProprtiesMap.get(PROPERTY_TEXT_REF_NAME);
-            String linkUrlRefField = tagProprtiesMap.get(PROPERTY_URL_REF_NAME);
-            String linkColorRefField = tagProprtiesMap.get(PROPERTY_COLOR_REF_NAME);
-
-            String linkText = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), linkValueRefField);
-            String linkUrl = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), linkUrlRefField);
-            String linkColor = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), linkColorRefField);
-
-            DocxTemplateUtils.getInstance().addHyperlink(par, linkText, linkUrl, linkColor);
+            TagLinkData link;
+            if (StringUtils.isBlank(tagText)) {
+                link = (TagLinkData) context.getRootValue();
+            } else {
+                link = (TagLinkData) PropertyUtils.getSimpleProperty(context.getRootValue(), tagText);
+            }
+            DocxTemplateUtils.getInstance().addHyperlink(par, link.getText(), link.getUrl(), link.getColor());
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
             throw new DocxTemplateFillerException("Cannot access value for tag " + tag.getTagText(), e);
         }

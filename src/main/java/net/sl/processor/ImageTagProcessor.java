@@ -4,17 +4,18 @@ import net.sl.DocxTemplateFillerContext;
 import net.sl.DocxTemplateUtils;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
+import net.sl.tag.TagImageData;
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.util.Units;
+import org.apache.poi.xwpf.usermodel.Document;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Map;
 
 /**
  * The processor is based on DTO fields
@@ -26,7 +27,7 @@ import java.util.Map;
  *
  * @author slapitsky
  */
-public class DtoTagImageProcessor extends AbstractTagProcessor implements TagProcessor {
+public class ImageTagProcessor extends AbstractTagProcessor implements TagProcessor {
 
     public static final String TAG_PREFIX_IMAGE = "image:";
     public static final String PROPERTY_TITLE_REF_NAME = "title";
@@ -59,27 +60,50 @@ public class DtoTagImageProcessor extends AbstractTagProcessor implements TagPro
     protected void insertRun(XWPFParagraph par, TagInfo tag, Object tagData, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException {
         try {
-            Map<String, String> tagProprtiesMap = getTagPropertiesAsMap(getRealTagText(tag));
-            String titleRefField = tagProprtiesMap.get(PROPERTY_TITLE_REF_NAME);
-            String sourceRefField = tagProprtiesMap.get(PROPERTY_SOURCE_REF_NAME);
-            String formatRefField = tagProprtiesMap.get(PROPERTY_FORMAT_REF_NAME);
-            String widthRefField = tagProprtiesMap.get(PROPERTY_PIXELS_WIDTH_REF_NAME);
-            String heightRefField = tagProprtiesMap.get(PROPERTY_PIXELS_HEIGHT_REF_NAME);
+            //we read from the context Image contract - the TagImageData interface.
+            //the interface has getters to return image attributes
+            String tagText = getRealTagText(tag);
 
-            String title = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), titleRefField);
-            String formatStr = (String) PropertyUtils.getSimpleProperty(context.getRootValue(), formatRefField);
-            int imageFormat = formatStr != null && (formatStr.contains("jpeg") || formatStr.contains("jpg")) ?
-                    org.apache.poi.xwpf.usermodel.Document.PICTURE_TYPE_JPEG :
-                    org.apache.poi.xwpf.usermodel.Document.PICTURE_TYPE_PNG;
-            Integer w = (Integer) PropertyUtils.getSimpleProperty(context.getRootValue(), widthRefField);
-            Integer h = (Integer) PropertyUtils.getSimpleProperty(context.getRootValue(), heightRefField);
-            InputStream imageStream = (InputStream) PropertyUtils.getSimpleProperty(context.getRootValue(), sourceRefField);
-
+            TagImageData image;
+            if (StringUtils.isBlank(tagText)) {
+                //the image data is value root
+                image = (TagImageData) context.getRootValue();
+            } else {
+                //the image data  referenced from root DTO
+                image = (TagImageData) PropertyUtils.getSimpleProperty(context.getRootValue(), tagText);
+            }
+            int imageFormat = getImageFormat(image);
             XWPFRun targetRun = par.createRun();
-            targetRun.addPicture(imageStream, imageFormat, title, Units.pixelToEMU(w), Units.pixelToEMU(h));
+            targetRun.addPicture(image.getSourceStream(),
+                    imageFormat,
+                    image.getTitle(), Units.pixelToEMU(image.getWidth()), Units.pixelToEMU(image.getHeight()));
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | IOException | InvalidFormatException e) {
             throw new DocxTemplateFillerException("Cannot access value for tag " + tag.getTagText(), e);
         }
 
+    }
+
+    /**
+     * Gets Format by specified content type.
+     *
+     * @param image image data
+     * @return image format or PNG if the content type is empty or unknown.
+     */
+    private int getImageFormat(TagImageData image) {
+        if (image.getContentType() == null) {
+            return Document.PICTURE_TYPE_PNG;
+        }
+        if (image.getContentType().contains("jpeg") || image.getContentType().contains("jpg")) {
+            return Document.PICTURE_TYPE_JPEG;
+        } else if (image.getContentType().contains("png")) {
+            return Document.PICTURE_TYPE_PNG;
+        } else if (image.getContentType().contains("tiff")) {
+            return Document.PICTURE_TYPE_TIFF;
+        } else if (image.getContentType().contains("bmp")) {
+            return Document.PICTURE_TYPE_BMP;
+        }
+
+        //for all the rest formats
+        return Document.PICTURE_TYPE_PNG;
     }
 }

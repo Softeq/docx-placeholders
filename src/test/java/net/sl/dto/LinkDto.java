@@ -1,5 +1,7 @@
 package net.sl.dto;
 
+import net.sl.tag.TagLinkData;
+
 /**
  * <p/>
  * Created on 1/4/2020.
@@ -7,38 +9,27 @@ package net.sl.dto;
  *
  * @author slapitsky
  */
-public class LinkDto {
-    private String linkText;
-    private String linkUrl;
-    private String linkColor;
+public class LinkDto implements TagLinkData {
+    private String text;
+    private String url;
+    private String color;
 
-    public LinkDto(String linkText, String linkUrl, String linkColor) {
-        this.linkText = linkText;
-        this.linkUrl = linkUrl;
-        this.linkColor = linkColor;
+    public LinkDto(String text, String url, String color) {
+        this.text = text;
+        this.url = url;
+        this.color = color;
     }
 
-    public String getLinkText() {
-        return linkText;
+    public String getText() {
+        return text;
     }
 
-    public void setLinkText(String linkText) {
-        this.linkText = linkText;
+    public String getUrl() {
+        return url;
     }
 
-    public String getLinkUrl() {
-        return linkUrl;
+    public String getColor() {
+        return color;
     }
 
-    public void setLinkUrl(String linkUrl) {
-        this.linkUrl = linkUrl;
-    }
-
-    public String getLinkColor() {
-        return linkColor;
-    }
-
-    public void setLinkColor(String linkColor) {
-        this.linkColor = linkColor;
-    }
 }

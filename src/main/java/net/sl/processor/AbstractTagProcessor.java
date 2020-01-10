@@ -13,7 +13,6 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -78,18 +77,20 @@ public abstract class AbstractTagProcessor {
                     run.setText(newEndRunText, 0);
                 }
                 //no need to iterate. we found where the tag placeholder ends
-                //now we can replace text for the run where the placeholder starts
-                run = parRuns.get(tagStartRunIndex);
-                run.setText(newRunText, 0);
                 break;
             }
             accumulatedTextLength += runText.length();
         }
+
+        //now we can replace text for the run where the placeholder starts
+        XWPFRun startRun = parRuns.get(tagStartRunIndex);
+        startRun.setText(newRunText, 0);
+
         //now we have indexes of the placeholder start and end run
         //all the previous runs must remain
         //all the runs in between must be removed completely
-        //all the runs after must be removed and reinserted after the link
-        getRunsAfterPlaceholder(parRuns, tagEndRunIndex);
+        //all the runs after must be removed and reinserted after the run which represents placeholder's value
+
         //create a copy with all the runs
         XWPFDocument clonedParagraphDoc = DocxTemplateUtils.getInstance().deepCloneElements(Collections.singletonList(par));
         XWPFParagraph parClone = clonedParagraphDoc.getParagraphs().get(0);
@@ -98,22 +99,17 @@ public abstract class AbstractTagProcessor {
             parClone.removeRun(0);
         }
 
+        //remove all runs after placeholder (to be reinserted after adding run with placeholder value)
         for (int i = parRuns.size() - 1; i > tagStartRunIndex; i--) {
             par.removeRun(i);
         }
+
         //insert run with the placeholder value
         insertRun(par, tag, tagData, context);
 
         //reinsert runs back by coping runs from cloned paragraph
-        DocxTemplateUtils.getInstance().copyParagraph(parClone, par);
-    }
-
-    private void getRunsAfterPlaceholder(List<XWPFRun> parRuns, int tagEndRunIndex) {
-        List<XWPFRun> runsAfterPlaceholderToBeReinserted = new ArrayList<>();
-        if (tagEndRunIndex >= 0) { //there are runs after the end of the last placeholder run
-            for (int i = tagEndRunIndex; i < parRuns.size(); i++) {
-                runsAfterPlaceholderToBeReinserted.add(parRuns.get(i));
-            }
+        if (tagEndRunIndex >= 0) {
+            DocxTemplateUtils.getInstance().copyParagraph(parClone, par);
         }
     }
 

@@ -7,9 +7,13 @@ import net.sl.exception.DocxTemplateFillerException;
 import net.sl.processor.PojoCollectionTagProcessor;
 import net.sl.processor.PojoFieldTagProcessor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +42,13 @@ public class DocxTemplateFillerDtoSourceTest
             context.push(null, fillExample());
             filler.fillTemplate(templateIs, filledTemplateOs, context);
             Assert.assertNotEquals(0, filledTemplateOs.size());
+
+            try (InputStream is = new ByteArrayInputStream(filledTemplateOs.toByteArray());
+                 XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
+                Assert.assertTrue(doc.getBodyElements().get(0) instanceof XWPFParagraph);
+                XWPFParagraph par = (XWPFParagraph) doc.getBodyElements().get(0);
+                Assert.assertEquals("Company: TestCompany", par.getText());
+            }
         } catch (IOException | InvalidFormatException | DocxTemplateFillerException ex) {
             Assert.fail();
         }

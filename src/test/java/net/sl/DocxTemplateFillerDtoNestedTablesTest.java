@@ -9,6 +9,7 @@ import net.sl.processor.PojoFieldTagProcessor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -45,6 +46,8 @@ public class DocxTemplateFillerDtoNestedTablesTest
 
             try (InputStream is = new ByteArrayInputStream(filledTemplateOs.toByteArray());
                  XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
+                XWPFParagraph par = (XWPFParagraph) doc.getBodyElements().get(0);
+                Assert.assertEquals("Company: TestCompany", par.getText());
                 Assert.assertEquals(4, doc.getTables().size());
             }
         }

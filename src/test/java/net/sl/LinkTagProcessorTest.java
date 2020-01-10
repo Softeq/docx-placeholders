@@ -41,7 +41,6 @@ public class LinkTagProcessorTest {
             filler.fillTemplate(templateIs, filledTemplateOs, context);
             Assert.assertNotEquals(0, filledTemplateOs.size());
 
-
             try (InputStream is = new ByteArrayInputStream(filledTemplateOs.toByteArray());
                  XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
                 Assert.assertTrue(doc.getBodyElements().get(0) instanceof XWPFParagraph);

@@ -24,7 +24,7 @@ import java.lang.reflect.InvocationTargetException;
  *
  * @author slapitsky
  */
-public class DtoTagFieldProcessor extends AbstractTagProcessor implements TagProcessor {
+public class PojoFieldTagProcessor extends AbstractTagProcessor implements TagProcessor {
 
     public static final String TAG_PREFIX_FIELD = "field:";
 

@@ -4,8 +4,8 @@ import net.sl.dto.CompanyExampleDto;
 import net.sl.dto.CompanyProjectDto;
 import net.sl.dto.DeveloperDto;
 import net.sl.exception.DocxTemplateFillerException;
-import net.sl.processor.DtoTagCollectionProcessor;
-import net.sl.processor.DtoTagFieldProcessor;
+import net.sl.processor.PojoCollectionTagProcessor;
+import net.sl.processor.PojoFieldTagProcessor;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.openxml4j.opc.OPCPackage;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -38,7 +38,7 @@ public class DocxTemplateFillerDtoNestedTablesTest
         try (InputStream templateIs = getClass().getResourceAsStream("/net/sl/Placeholders-dto-value-template-nested-collections.docx");
              ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();) {
             DocxTemplateFillerContext context = new DocxTemplateFillerContext();
-            context.setProcessors(Arrays.asList(new DtoTagCollectionProcessor(), new DtoTagFieldProcessor()));
+            context.setProcessors(Arrays.asList(new PojoCollectionTagProcessor(), new PojoFieldTagProcessor()));
             context.push(null, fillExample());
             filler.fillTemplate(templateIs, filledTemplateOs, context);
             Assert.assertNotEquals(0, filledTemplateOs.size());

@@ -27,7 +27,7 @@ import java.util.List;
  *
  * @author slapitsky
  */
-public class DtoTagCollectionProcessor implements TagProcessor {
+public class PojoCollectionTagProcessor implements TagProcessor {
 
     public static final String TAG_PREFIX_COLLECTION_START = "collection:";
 

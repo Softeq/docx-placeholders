@@ -46,6 +46,12 @@ public class LinkTagProcessor extends AbstractTagProcessor implements TagProcess
         return DocxTemplateUtils.getInstance().getNextSibling(elem);
     }
 
+    /**
+     * Returns tag text without prefix
+     *
+     * @param tag
+     * @return
+     */
     private String getRealTagText(TagInfo tag) {
         return tag.getTagText().substring(TAG_PREFIX_LINK.length());
     }

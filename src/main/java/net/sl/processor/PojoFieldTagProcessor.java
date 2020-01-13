@@ -46,6 +46,16 @@ public class PojoFieldTagProcessor extends AbstractTagProcessor implements TagPr
         }
     }
 
+    /**
+     * Gets tag value (corresponding POJO field as string
+     *
+     * @param tag
+     * @param context
+     * @return
+     * @throws IllegalAccessException
+     * @throws InvocationTargetException
+     * @throws NoSuchMethodException
+     */
     private String getStringTagValue(TagInfo tag, DocxTemplateFillerContext context)
             throws IllegalAccessException, InvocationTargetException, NoSuchMethodException {
         Object value = null;
@@ -61,6 +71,12 @@ public class PojoFieldTagProcessor extends AbstractTagProcessor implements TagPr
         return tagValue;
     }
 
+    /**
+     * Returns tag text without prefix
+     *
+     * @param tag
+     * @return
+     */
     private String getRealTagName(TagInfo tag) {
         return tag.getTagText().substring(TAG_PREFIX_FIELD.length());
     }

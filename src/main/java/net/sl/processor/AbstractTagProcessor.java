@@ -113,6 +113,17 @@ public abstract class AbstractTagProcessor {
         }
     }
 
+    /**
+     * An important method used by multiple TagProcessor. In fact it must insert a run with all defined content.
+     * It could be simple text run for Map or POJO field processor or more complicated run for Link or Image
+     *
+     * @param par     target paragraph where the tag was found
+     * @param tag     the tag to be replaced
+     * @param tagData data to evaluate tag value and properly insert content. The data could be extracted from the tag
+     *                and/or context
+     * @param context filler context
+     * @throws DocxTemplateFillerException
+     */
     protected abstract void insertRun(XWPFParagraph par, TagInfo tag, Object tagData, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException;
 

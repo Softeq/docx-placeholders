@@ -52,6 +52,12 @@ public class ImageTagProcessor extends AbstractTagProcessor implements TagProces
         }
     }
 
+    /**
+     * Returns tag text without prefix
+     *
+     * @param tag
+     * @return
+     */
     private String getRealTagText(TagInfo tag) {
         return tag.getTagText().substring(TAG_PREFIX_IMAGE.length());
     }

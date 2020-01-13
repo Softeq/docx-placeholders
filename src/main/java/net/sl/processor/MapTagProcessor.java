@@ -46,6 +46,12 @@ public class MapTagProcessor extends AbstractTagProcessor implements TagProcesso
         return elem;
     }
 
+    /**
+     * Gets tag value from the map (tag name is the key)
+     *
+     * @param tag
+     * @return
+     */
     private String getTagValue(TagInfo tag) {
         //get tag text value and store to the run
         String tagValue = tagValuesMap.get(tag.getTagText());

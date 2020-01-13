@@ -11,17 +11,15 @@ A template .docx file containing "**Hello {firstName} {lastName}**" after evalua
 Content:
 1. [Quick Start](#quick-start)
 2. [Supported tags](#Supported-tags)
-    - [Map](#Map)
-    - [POJO field](#Field)
-    - [POJO Collection](#Collection)    
-    - [Link](#Link-and-Image-tags)
-    - [Image](#Link-and-Image-tags)
+    - [Map](#Map-Tag-Processor)
+    - [POJO fields and collections](#POJO-fields-and-collections)
+    - [Link and Image](#Link-and-Image-tags)
 3. [Customize tag start and end tokens](#Customize-tag-start-end)
 4. [Samples](#Samples)
 
 ### Quick Start
 
-The simplest start is to define a template .docx document whith placeholders like **${{firstName}}** and
+The simplest start is to define a template .docx document with placeholders like **${{firstName}}** and
  **${{lastName}}** and then evaluate (fill) the template with the following code. 
 ```java
 //read template .docx
@@ -49,7 +47,7 @@ Developer defines a Map with tags to be filled and the values are placed in the 
 
 The simplest case described above is not enough in many cases. Let's consider a few alternative cases.
 
-### POJO field
+### POJO fields and collections
 When there is a POJO java object and we need the fields of the POJO to be used in a template another tag processors 
 should be used - PojoFieldTagProcessor and PojoCollectionTagProcessor.
 
@@ -91,10 +89,10 @@ After evaluation the filled .docx template is following:
 
 How it works?
 
-Each tag is evaluated by own Tag Processor. List of tg processors are defined in the DocxTemplateFillerContext. 
+Each tag is evaluated by own Tag Processor. List of tag processors are defined in the DocxTemplateFillerContext. 
 For each detected tag the list is iterated to find the processor which can process the tag. In the described case
-One processor can process field tags and another one processes collection. 
-The field processing tag gets tag value from the POJO objrect placed as the DocxTemplateFillerContext root value.
+one processor can process field tags and another one processes collection. 
+The field processing tag gets tag value from the POJO object placed as the DocxTemplateFillerContext root value.
 
 When the collection tag is met the collection processor does the following:
 1. Detects tag body - all the body elements - paragraphs and tables between open and close tag.
@@ -111,7 +109,7 @@ The same approach is applied to the nested tags (e.g. collection in a collection
 each project has a list of developers. Value root is pushed in a stack defined in the DocxTemplateFillerContext and 
 restored after tag body evaluation.
 ## Link and Image tags
-There are some cases when just plain text is not enogh. The cases when we need a link or image require more than just text.
+There are some cases when just plain text is not enough. The cases when we need a link or image require more than just text.
 For such cases separate interfaces were defined:
 For links
 ```java
@@ -134,7 +132,7 @@ public interface TagImageData {
 If a link must be inserted in a template a tag "link" should be defined ${{link:/}} if the link is POJO or
 ${{image:imageField/}} if the link is a field of the value root POJO.
 In the first case POJO placed in the context root must implement the TagLinkData interface. The methods are used to 
-retun link attributes - text or the link, reference URL, and the link color.
+return link attributes - text or the link, reference URL, and the link color.
 
 Image interface includes more methods to define image size, content etc.
 
@@ -150,3 +148,6 @@ context.setTagStart("<");
 context.setTagEnd(">");
 ``` 
 After that tags like "&lt;field:firstName&gt;" can be added to the templates to be evaluated.
+
+## Samples
+To be defined.

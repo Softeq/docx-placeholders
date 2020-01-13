@@ -45,7 +45,6 @@ public class CustomizeTagStartEndTest {
 
             try (InputStream is = new ByteArrayInputStream(filledTemplateOs.toByteArray());
                  XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
-                DocxTemplateUtils.getInstance().storeDocToFile(doc, "D:/TEMP/_filler_result.docx");
                 Assert.assertTrue(doc.getBodyElements().get(0) instanceof XWPFParagraph);
                 XWPFParagraph par = (XWPFParagraph) doc.getBodyElements().get(0);
                 Assert.assertTrue(par.getText().contains("John"));

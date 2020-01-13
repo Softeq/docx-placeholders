@@ -14,15 +14,15 @@ Content:
     - [Map](#Map)
     - [POJO field](#Field)
     - [POJO Collection](#Collection)    
-    - [Link](#Link)
-    - [Image](#Image)
+    - [Link](#Link-and-Image-tags)
+    - [Image](#Link-and-Image-tags)
 3. [Customize tag start and end tokens](#Customize-tag-start-end)
 4. [Samples](#Samples)
 
 ### Quick Start
 
-The simplest start is to define a template .docx document whith placeholders like ${{firstName}} and $ {{lastName}} and 
-then evaluate (fill) the template with the following code. 
+The simplest start is to define a template .docx document whith placeholders like **${{firstName}}** and
+ **${{lastName}}** and then evaluate (fill) the template with the following code. 
 ```java
 //read template .docx
 InputStream templateStream = getClass().getResourceAsStream("/some/resource/MyTemplate.docx");
@@ -71,10 +71,72 @@ The POJO could be represented as the following JSON.
   ]
 }
 ```
+```java
+//read template .docx
+InputStream templateStream = getClass().getResourceAsStream("/some/resource/MyTemplate.docx");
+//create context and add two tag processors to handle the tags
+DocxTemplateFillerContext context = new DocxTemplateFillerContext();
+context.setProcessors(Arrays.asList(new PojoCollectionTagProcessor(), new PojoFieldTagProcessor()));
 
+//place the POJO as a value root in the context
+context.push(null, createPOJOexampleFromJSON());
 
+//create target stream to store the filled template
+ByteArrayOutputStream filledTemplateStream = new ByteArrayOutputStream();
+//fill the template with the defined placeholders
+filler.fillTemplate(templateStream, filledTemplateStream, context); 
+```
 After evaluation the filled .docx template is following:
 ![Alt text](img/pojo-simple-template-evaluated-example.png?raw=true "POJO based tag processors template filled")
+
+How it works?
+
+Each tag is evaluated by own Tag Processor. List of tg processors are defined in the DocxTemplateFillerContext. 
+For each detected tag the list is iterated to find the processor which can process the tag. In the described case
+One processor can process field tags and another one processes collection. 
+The field processing tag gets tag value from the POJO objrect placed as the DocxTemplateFillerContext root value.
+
+When the collection tag is met the collection processor does the following:
+1. Detects tag body - all the body elements - paragraphs and tables between open and close tag.
+2. Found the tag referenced collection in the DocxTemplateFillerContext value root.
+3. Starts iterating the collection
+4. Each collection item is placed to be the new value root.
+5. The tag body (filled in the step 1) is cloned, evaluated (tags filled) with the new local value root. 
+(So the ${{field:projectName}} finds value in the local root - collection member).
+6. The evaluated tag body for the single collection item is inserted.
+7. After all the collection items are processed and all the evaluated copies of tag body are inserted the original 
+elements are removed (including the tag start and end).
+
+The same approach is applied to the nested tags (e.g. collection in a collection). Company has a projects collection and
+each project has a list of developers. Value root is pushed in a stack defined in the DocxTemplateFillerContext and 
+restored after tag body evaluation.
+## Link and Image tags
+There are some cases when just plain text is not enogh. The cases when we need a link or image require more than just text.
+For such cases separate interfaces were defined:
+For links
+```java
+public interface TagLinkData {
+    String getText();
+    String getUrl();
+    String getColor();
+}
+```
+For images
+```java
+public interface TagImageData {
+    String getTitle();
+    String getContentType();
+    InputStream getSourceStream();
+    Integer getWidth();
+    Integer getHeight();
+}
+``` 
+If a link must be inserted in a template a tag "link" should be defined ${{link:/}} if the link is POJO or
+${{image:imageField/}} if the link is a field of the value root POJO.
+In the first case POJO placed in the context root must implement the TagLinkData interface. The methods are used to 
+retun link attributes - text or the link, reference URL, and the link color.
+
+Image interface includes more methods to define image size, content etc.
 
 ## Customize tag start/end
 
@@ -87,3 +149,4 @@ DocxTemplateFillerContext context = new DocxTemplateFillerContext();
 context.setTagStart("<");
 context.setTagEnd(">");
 ``` 
+After that tags like "&lt;field:firstName&gt;" can be added to the templates to be evaluated.

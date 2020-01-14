@@ -73,7 +73,7 @@ public abstract class AbstractTagProcessor {
                 if (tagStartRunIndex == tagEndRunIndex) {
                     //the placeholder starts and ends in the same run
                 } else {
-                    String newEndRunText = runText.substring(runEndPosition - accumulatedTextLength);
+                    String newEndRunText = runText.substring(0, runEndPosition - tagEndOffset);
                     run.setText(newEndRunText, 0);
                 }
                 //no need to iterate. we found where the tag placeholder ends

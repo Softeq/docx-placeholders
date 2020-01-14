@@ -1,7 +1,6 @@
 package net.sl.processor;
 
 import net.sl.DocxTemplateFillerContext;
-import net.sl.DocxTemplateUtils;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
 import net.sl.exception.DocxTemplateFillerTechnicalException;
@@ -40,7 +39,7 @@ public class PojoFieldTagProcessor extends AbstractTagProcessor implements TagPr
             String tagValue = getStringTagValue(tag, context);
             fillTag(tag, (XWPFParagraph) elem, tagValue, context);
 
-            return DocxTemplateUtils.getInstance().getNextSibling(elem);
+            return elem;
         } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException | IOException e) {
             throw new DocxTemplateFillerException("Cannot access value for tag " + tag.getTagText(), e);
         }

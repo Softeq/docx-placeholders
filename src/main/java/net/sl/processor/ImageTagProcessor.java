@@ -1,7 +1,6 @@
 package net.sl.processor;
 
 import net.sl.DocxTemplateFillerContext;
-import net.sl.DocxTemplateUtils;
 import net.sl.TagInfo;
 import net.sl.exception.DocxTemplateFillerException;
 import net.sl.tag.TagImageData;
@@ -46,7 +45,7 @@ public class ImageTagProcessor extends AbstractTagProcessor implements TagProces
             throws DocxTemplateFillerException {
         try {
             fillTag(tag, (XWPFParagraph) elem, null, context);
-            return DocxTemplateUtils.getInstance().getNextSibling(elem);
+            return elem;
         } catch (IOException e) {
             throw new DocxTemplateFillerException("Cannot access value for tag " + tag.getTagText(), e);
         }

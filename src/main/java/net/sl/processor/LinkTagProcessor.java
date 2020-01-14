@@ -43,7 +43,7 @@ public class LinkTagProcessor extends AbstractTagProcessor implements TagProcess
         } catch (IOException e) {
             throw new DocxTemplateFillerException("Cannot fill tag " + tag, e);
         }
-        return DocxTemplateUtils.getInstance().getNextSibling(elem);
+        return elem;
     }
 
     /**

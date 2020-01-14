@@ -13,6 +13,7 @@ Content:
 2. [Supported tags](#Supported-tags)
     - [Map](#Map-Tag-Processor)
     - [POJO fields and collections](#POJO-fields-and-collections)
+    - [POJO nested block](#POJO-nested-block)
     - [Link and Image](#Link-and-Image-tags)
 3. [Customize tag start and end tokens](#Customize-tag-start-end)
 4. [Samples](#Samples)
@@ -108,6 +109,26 @@ elements are removed (including the tag start and end).
 The same approach is applied to the nested tags (e.g. collection in a collection). Company has a projects collection and
 each project has a list of developers. Value root is pushed in a stack defined in the DocxTemplateFillerContext and 
 restored after tag body evaluation.
+
+## POJO nested block
+Suppose there is a POJO User with nested POJO Address
+```java
+public class UserDto {
+    private String firstName;
+    private String lastName;
+    private AddressDto address;
+    //getters and setters
+}
+public class AddressDto {
+    private String country;
+    private String city;
+    private String street;
+    //getters and setters
+}
+```
+To show values of the nested Address POJO the **${{block:address}}** tag. When the "block" tag is met the referenced field
+becomes the value root and all the inner "field" tags e.g. **${{field:country}}** use the fields of new value root - Address. 
+
 ## Link and Image tags
 There are some cases when just plain text is not enough. The cases when we need a link or image require more than just text.
 For such cases separate interfaces were defined:
@@ -130,7 +151,7 @@ public interface TagImageData {
 }
 ``` 
 If a link must be inserted in a template a tag "link" should be defined ${{link:/}} if the link is POJO or
-${{image:imageField/}} if the link is a field of the value root POJO.
+${{link:linkField/}} if the link is a field of the value root POJO. For Images ${{image:/}} and ${{image:imageField/}}
 In the first case POJO placed in the context root must implement the TagLinkData interface. The methods are used to 
 return link attributes - text or the link, reference URL, and the link color.
 

@@ -41,7 +41,6 @@ public class DocxTemplateFillerDtoInnerBlockTest {
 
             try (InputStream is = new ByteArrayInputStream(filledTemplateOs.toByteArray());
                  XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
-                DocxTemplateUtils.getInstance().storeDocToFile(doc, "D:/TEMP/_filler_result.docx");
                 Assert.assertEquals(1, doc.getTables().size());
                 Assert.assertEquals("Belarus\n" +
                         "Minsk\n" +

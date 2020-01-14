@@ -7,16 +7,10 @@ import net.sl.exception.DocxTemplateFillerException;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Attribute;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * The abstract class for processors.
@@ -127,14 +121,4 @@ public abstract class AbstractTagProcessor {
     protected abstract void insertRun(XWPFParagraph par, TagInfo tag, Object tagData, DocxTemplateFillerContext context)
             throws DocxTemplateFillerException;
 
-    protected Map<String, String> getTagPropertiesAsMap(String tagText) {
-        Map<String, String> tagValuesMap = new HashMap<>();
-        Document doc = Jsoup.parse("<p " + tagText + "/>");
-        Element link = doc.select("p").first();
-        for (Attribute attr : link.attributes()) {
-            tagValuesMap.put(attr.getKey(), attr.getValue());
-        }
-
-        return tagValuesMap;
-    }
 }

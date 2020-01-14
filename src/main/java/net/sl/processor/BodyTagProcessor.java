@@ -101,8 +101,7 @@ public abstract class BodyTagProcessor {
         //then we have to remove all the original tag body
         DocxTemplateUtils.getInstance().removeElements(body, i, tagBodyList.size() + 2);
         //next sibling now is the element after removed original body (referenced by the same i index now)
-        IBodyElement nextSibling = body.getBodyElements().size() > i ? body.getBodyElements().get(i) : null;
-        return nextSibling;
+        return body.getBodyElements().size() > i ? body.getBodyElements().get(i) : null;
     }
 
     /**

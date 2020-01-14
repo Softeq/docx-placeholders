@@ -10,6 +10,7 @@ import org.apache.poi.xwpf.usermodel.XWPFHeader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Objects;
 
 /**
  * Main class which obtains template stream and context, fills the result document and stores the result into target result stream.
@@ -43,20 +44,24 @@ public class DocxTemplateFiller {
                              DocxTemplateFillerContext context)
             throws IOException, InvalidFormatException, DocxTemplateFillerException {
 
-        XWPFDocument doc = new XWPFDocument(OPCPackage.open(templateSourceStream));
+        try (XWPFDocument doc = new XWPFDocument(OPCPackage.open(templateSourceStream));) {
 
-        //replace tags in the document body
-        DocxTemplateUtils.getInstance().fillTags(doc, context);
+            if (Objects.equals(context.getTagStart(), context.getTagEnd())) {
+                throw new DocxTemplateFillerException("Tag start and end tokens must not be the same '" + context.getTagStart() + "'");
+            }
+            //replace tags in the document body
+            DocxTemplateUtils.getInstance().fillTags(doc, context);
 
-        //replace tags in the document headers
-        for (XWPFHeader header : doc.getHeaderList()) {
-            DocxTemplateUtils.getInstance().fillTags(header, context);
+            //replace tags in the document headers
+            for (XWPFHeader header : doc.getHeaderList()) {
+                DocxTemplateUtils.getInstance().fillTags(header, context);
+            }
+            //replace tags in the document footers
+            for (XWPFFooter footer : doc.getFooterList()) {
+                DocxTemplateUtils.getInstance().fillTags(footer, context);
+            }
+            doc.write(filledTemplateStream);
         }
-        //replace tags in the document footers
-        for (XWPFFooter footer : doc.getFooterList()) {
-            DocxTemplateUtils.getInstance().fillTags(footer, context);
-        }
-        doc.write(filledTemplateStream);
     }
 
 }

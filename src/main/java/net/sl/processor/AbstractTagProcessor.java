@@ -43,8 +43,10 @@ public abstract class AbstractTagProcessor {
         int tagEndOffset = tag.getTagStartOffset() + context.getTagStart().length() + tag.getTagText().length() + context.getTagEnd().length();
         //we add each run text's length to keep current run start index (in the par)
         int accumulatedTextLength = 0;
-        //new run text - old text with replaced placeholder
+        //new run text for run where placeholder starts = old text without placeholder
         String newRunText = null;
+        //if placeholder starts and ends in the same run we must split the run
+        String afterPlaceholderRunText = null;
         List<XWPFRun> parRuns = par.getRuns();
         int tagStartRunIndex = -1;
         int tagEndRunIndex = -1;
@@ -66,8 +68,9 @@ public abstract class AbstractTagProcessor {
                 tagEndRunIndex = i;
                 if (tagStartRunIndex == tagEndRunIndex) {
                     //the placeholder starts and ends in the same run
+                    afterPlaceholderRunText = runText.substring(tagEndOffset - accumulatedTextLength);
                 } else {
-                    String newEndRunText = runText.substring(0, runEndPosition - tagEndOffset);
+                    String newEndRunText = runText.substring(tagEndOffset - accumulatedTextLength);
                     run.setText(newEndRunText, 0);
                 }
                 //no need to iterate. we found where the tag placeholder ends
@@ -100,6 +103,14 @@ public abstract class AbstractTagProcessor {
 
         //insert run with the placeholder value
         insertRun(par, tag, tagData, context);
+
+        if (afterPlaceholderRunText != null) {
+            ///if placeholder starts and ends in the same run we break them and need to insert one more run after placeholder
+            XWPFRun afterPlaceholderRun = par.createRun();
+            afterPlaceholderRun.getCTR().setRPr(startRun.getCTR().getRPr());
+            afterPlaceholderRun.setText(afterPlaceholderRunText);
+            parClone.removeRun(0);
+        }
 
         //reinsert runs back by coping runs from cloned paragraph
         if (tagEndRunIndex >= 0) {

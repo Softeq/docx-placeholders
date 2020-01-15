@@ -128,9 +128,13 @@ public class AddressDto {
 ```
 To show values of the nested Address POJO the **${{block:address}}** tag. When the "block" tag is met the referenced field
 becomes the value root and all the inner "field" tags e.g. **${{field:country}}** use the fields of new value root - Address.
+
 So for the template
+
 ![Alt text](img/pojo-nested-block-example.png?raw=true "Nested block template")
-And after evaluation the filled template 
+
+And after evaluation the filled template
+ 
 ![Alt text](img/pojo-nested-block-evaluated-example.png?raw=true "Nested block template")  
 
 ## Link and Image tags

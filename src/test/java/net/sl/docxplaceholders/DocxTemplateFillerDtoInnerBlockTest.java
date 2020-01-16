@@ -53,6 +53,29 @@ public class DocxTemplateFillerDtoInnerBlockTest {
         }
     }
 
+    @Test
+    public void testFillingBlockEmptyReference() {
+        try (InputStream templateIs = getClass().getResourceAsStream("/net/sl/docxplaceholders/Placeholders-dto-block-value-template.docx");
+             ByteArrayOutputStream filledTemplateOs = new ByteArrayOutputStream();) {
+            DocxTemplateFillerContext context = new DocxTemplateFillerContext();
+            context.setProcessors(Arrays.asList(new PojoNestedBlockTagProcessor(), new PojoFieldTagProcessor()));
+            UserDto pojo = fillExample();
+            pojo.setAddress(null);
+            context.push(null, pojo);
+            filler.fillTemplate(templateIs, filledTemplateOs, context);
+            Assert.assertNotEquals(0, filledTemplateOs.size());
+
+            try (InputStream is = new ByteArrayInputStream(filledTemplateOs.toByteArray());
+                 XWPFDocument doc = new XWPFDocument(OPCPackage.open(is));) {
+                Assert.assertEquals(0, doc.getTables().size());
+                XWPFParagraph par = (XWPFParagraph) doc.getBodyElements().get(0);
+                Assert.assertEquals("User: Stanislav Lapitsky", par.getText());
+            }
+        } catch (IOException | InvalidFormatException | DocxTemplateFillerException ex) {
+            Assert.fail();
+        }
+    }
+
     private UserDto fillExample() {
         UserDto res = new UserDto();
         res.setFirstName("Stanislav");

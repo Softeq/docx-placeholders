@@ -58,6 +58,10 @@ public class PojoNestedBlockTagProcessor extends BodyTagProcessor implements Tag
         try {
             //get collection by the name defined in the tag.
             Object blockRoot = PropertyUtils.getSimpleProperty(context.getRootValue(), getRealTagName(tag));
+            if (blockRoot == null) {
+                //no block body
+                return insertedCount;
+            }
             //clone tag body elems
             XWPFDocument tagBodyClone = DocxTemplateUtils.getInstance().deepCloneElements(tagBodyList);
             //recursively apply the same logic to body clone to replace tags

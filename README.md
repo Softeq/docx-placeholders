@@ -35,6 +35,8 @@ DocxTemplateFillerContext context = new DocxTemplateFillerContext();
 context.setProcessors(Collections.singletonList(new MapTagProcessor(placeholdersValuesMap)));
 //create target stream to store the filled template
 ByteArrayOutputStream filledTemplateStream = new ByteArrayOutputStream();
+
+DocxTemplateFiller filler = new DocxTemplateFiller();
 //fill the template with the defined placeholders
 filler.fillTemplate(templateStream, filledTemplateStream, context); 
 ```
@@ -49,7 +51,7 @@ Developer defines a Map with tags to be filled and the values are placed in the 
 The simplest case described above is not enough in many cases. Let's consider a few alternative cases.
 
 ### POJO fields and collections
-When there is a POJO java object and we need the fields of the POJO to be used in a template another tag processors 
+When there is a POJO (Plain Old Java Object) java object and we need the fields of the POJO to be used in a template another tag processors 
 should be used - PojoFieldTagProcessor and PojoCollectionTagProcessor.
 
 A template below shows tags "field" and "collection".
@@ -70,6 +72,9 @@ The POJO could be represented as the following JSON.
   ]
 }
 ```
+Here ${{collection:**projects**}} means reference to the POJO field named "projects".
+
+To evaluate the template and fill declared placeholders tag the following code to be executed:
 ```java
 //read template .docx
 InputStream templateStream = getClass().getResourceAsStream("/some/resource/MyTemplate.docx");
@@ -82,6 +87,8 @@ context.push(null, createPOJOexampleFromJSON());
 
 //create target stream to store the filled template
 ByteArrayOutputStream filledTemplateStream = new ByteArrayOutputStream();
+
+DocxTemplateFiller filler = new DocxTemplateFiller();
 //fill the template with the defined placeholders
 filler.fillTemplate(templateStream, filledTemplateStream, context); 
 ```
@@ -100,8 +107,9 @@ When the collection tag is met the collection processor does the following:
 2. Found the tag referenced collection in the DocxTemplateFillerContext value root.
 3. Starts iterating the collection
 4. Each collection item is placed to be the new value root.
-5. The tag body (filled in the step 1) is cloned, evaluated (tags filled) with the new local value root. 
-(So the ${{field:projectName}} finds value in the local root - collection member).
+5. The tag body (filled in the step 1) is cloned including all the nested elements and theri styles, evaluated 
+(tags filled) with the new local value root. (So the ${{field:projectName}} finds value in the local root - 
+collection member).
 6. The evaluated tag body for the single collection item is inserted.
 7. After all the collection items are processed and all the evaluated copies of tag body are inserted the original 
 elements are removed (including the tag start and end).
@@ -109,6 +117,13 @@ elements are removed (including the tag start and end).
 The same approach is applied to the nested tags (e.g. collection in a collection). Company has a projects collection and
 each project has a list of developers. Value root is pushed in a stack defined in the DocxTemplateFillerContext and 
 restored after tag body evaluation.
+
+NOTE: The DocxTemplateFillerContext works with a list of TagProcessors. For each found tag the list is iterated asking 
+each TagProcessor whether it can process the found tag. The method of TagProcessor interface.
+```Java
+boolean canProcessTag(TagInfo tag);
+```
+If a processor returns yes filler passes the control to the processor to fill the tag.
 
 ## POJO nested block
 Suppose there is a POJO User with nested POJO Address

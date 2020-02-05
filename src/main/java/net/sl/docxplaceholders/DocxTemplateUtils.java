@@ -111,8 +111,10 @@ public class DocxTemplateUtils {
     public void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
         target.getCTP().setPPr(source.getCTP().getPPr());
         // copy hyperlinks
-        Arrays.stream(source.getCTP().getHyperlinkArray()).forEach(sourceHyperlink ->
-                addHyperlink(target, sourceHyperlink.getAnchor(), sourceHyperlink.getId(), HYPERLINK_DEFAULT_COLOR)
+        Arrays.stream(source.getCTP().getHyperlinkArray()).forEach(sourceHyperlink -> {
+                    String text = sourceHyperlink.getRArray(0).getTArray(0).getStringValue();
+                    addHyperlink(target, text, sourceHyperlink.getId(), HYPERLINK_DEFAULT_COLOR);
+                }
         );
         for (int i = 0; i < source.getRuns().size(); i++) {
             XWPFRun run = source.getRuns().get(i);

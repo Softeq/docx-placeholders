@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class AllTagProcessors {
+
     public static void main(String[] args) {
         //read template stream from resource
         //the template contains ${{firstName}} and ${{lastName}} placeholders
@@ -52,7 +53,6 @@ public class AllTagProcessors {
             //fill the template from the source stream storing values to the output stream
             //filling logic is based on the context processors
             filler.fillTemplate(templateIs, filledTemplateOs, context);
-
         } catch (IOException | InvalidFormatException | DocxTemplateFillerException ex) {
             ex.printStackTrace();
         }

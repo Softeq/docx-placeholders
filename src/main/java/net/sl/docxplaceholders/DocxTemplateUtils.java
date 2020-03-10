@@ -3,6 +3,8 @@ package net.sl.docxplaceholders;
 import net.sl.docxplaceholders.exception.DocxTemplateFillerException;
 import net.sl.docxplaceholders.exception.DocxTemplateFillerTechnicalException;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.openxml4j.opc.PackageRelationship;
+import org.apache.poi.openxml4j.opc.PackageRelationshipCollection;
 import org.apache.poi.xwpf.usermodel.BodyElementType;
 import org.apache.poi.xwpf.usermodel.IBody;
 import org.apache.poi.xwpf.usermodel.IBodyElement;
@@ -19,13 +21,13 @@ import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.apache.xmlbeans.XmlCursor;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTHyperlink;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -69,6 +71,10 @@ public class DocxTemplateUtils {
     public XWPFDocument deepCloneElements(List<IBodyElement> source) throws IOException {
         //create a new document to add copies to
         try (XWPFDocument targetDoc = new XWPFDocument()) {
+            if (source.isEmpty()) {
+                return targetDoc;
+            }
+            copyRelationships(source.get(0).getBody().getXWPFDocument(), targetDoc);
             for (IBodyElement bodyElement : source) {
                 BodyElementType elementType = bodyElement.getElementType();
 
@@ -102,6 +108,20 @@ public class DocxTemplateUtils {
         }
     }
 
+    private void copyRelationships(XWPFDocument sourceDoc, XWPFDocument targetDoc) {
+        try {
+            PackageRelationshipCollection relationshipCollection = sourceDoc.getPackagePart().getRelationships();
+            for (int i = 0; i < relationshipCollection.size(); i++) {
+                PackageRelationship relationship = relationshipCollection.getRelationship(i);
+                targetDoc.getPackagePart().addExternalRelationship(relationship.getTargetURI().toString(),
+                        relationship.getRelationshipType(),
+                        relationship.getId());
+            }
+        } catch (InvalidFormatException e) {
+            throw new DocxTemplateFillerTechnicalException(e);
+        }
+    }
+
     /**
      * Copies content (runs) and all the properties (PRs) of source paraghraph to the target paragraph.
      *
@@ -110,41 +130,68 @@ public class DocxTemplateUtils {
      */
     public void copyParagraph(XWPFParagraph source, XWPFParagraph target) {
         target.getCTP().setPPr(source.getCTP().getPPr());
-        // copy hyperlinks
-        Arrays.stream(source.getCTP().getHyperlinkArray()).forEach(sourceHyperlink -> {
-                    String text = sourceHyperlink.getRArray(0).getTArray(0).getStringValue();
-                    addHyperlink(target, text, sourceHyperlink.getId(), HYPERLINK_DEFAULT_COLOR);
-                }
-        );
         for (int i = 0; i < source.getRuns().size(); i++) {
             XWPFRun run = source.getRuns().get(i);
-            XWPFRun targetRun = target.createRun();
-            //copy formatting
-            targetRun.getCTR().setRPr(run.getCTR().getRPr());
-            if (run.getEmbeddedPictures().isEmpty()) {
-                //no images just copy text
-                targetRun.setText(getRunText(run));
+            if (run instanceof XWPFHyperlinkRun) {
+                copyHyperlinkRun(target, (XWPFHyperlinkRun) run);
             } else {
-                //need to copy image's content
-                for (XWPFPicture picture : run.getEmbeddedPictures()) {
-                    //get source image width and height
-                    long w = picture.getCTPicture().getSpPr().getXfrm().getExt().getCx();
-                    long h = picture.getCTPicture().getSpPr().getXfrm().getExt().getCy();
-                    XWPFPictureData pictureData = picture.getPictureData();
-                    byte[] img = pictureData.getData();
-                    String fileName = pictureData.getFileName();
-                    int imageFormat = pictureData.getPictureType();
-                    try {
-                        targetRun.addPicture(new ByteArrayInputStream(img),
-                                imageFormat,
-                                fileName,
-                                (int) w, (int) h);
-                    } catch (InvalidFormatException | IOException e) {
-                        throw new DocxTemplateFillerTechnicalException("Unexpected image inserting error ", e);
-                    }
+                XWPFRun targetRun = target.createRun();
+                //copy formatting
+                targetRun.getCTR().setRPr(run.getCTR().getRPr());
+                if (run.getEmbeddedPictures().isEmpty()) {
+                    //no images just copy text
+                    targetRun.setText(getRunText(run));
+                } else {
+                    //need to copy image's content
+                    copyRunImages(run, targetRun);
                 }
             }
         }
+    }
+
+    /**
+     * Copy run images to target run
+     *
+     * @param run       source run
+     * @param targetRun target run
+     */
+    private void copyRunImages(XWPFRun run, XWPFRun targetRun) {
+        for (XWPFPicture picture : run.getEmbeddedPictures()) {
+            //get source image width and height
+            long w = picture.getCTPicture().getSpPr().getXfrm().getExt().getCx();
+            long h = picture.getCTPicture().getSpPr().getXfrm().getExt().getCy();
+            XWPFPictureData pictureData = picture.getPictureData();
+            byte[] img = pictureData.getData();
+            String fileName = pictureData.getFileName();
+            int imageFormat = pictureData.getPictureType();
+            try {
+                targetRun.addPicture(new ByteArrayInputStream(img),
+                        imageFormat,
+                        fileName,
+                        (int) w, (int) h);
+            } catch (InvalidFormatException | IOException e) {
+                throw new DocxTemplateFillerTechnicalException("Unexpected image inserting error ", e);
+            }
+        }
+    }
+
+    /**
+     * Copy hyperlink run to the target paragraph
+     *
+     * @param target
+     * @param run
+     */
+    private void copyHyperlinkRun(XWPFParagraph target, XWPFHyperlinkRun sourceHyperlinkRun) {
+        String hyperlinkId = sourceHyperlinkRun.getHyperlinkId();
+
+        CTHyperlink hyperlink = target.getCTP().addNewHyperlink();
+        hyperlink.setId(hyperlinkId);
+        hyperlink.addNewR();
+        XWPFHyperlinkRun hyperlinkRun = new XWPFHyperlinkRun(hyperlink, hyperlink.getRArray(0), target);
+        hyperlinkRun.getCTR().setRPr(sourceHyperlinkRun.getCTR().getRPr());
+        hyperlinkRun.setText(getRunText(sourceHyperlinkRun));
+        hyperlinkRun.setColor(sourceHyperlinkRun.getColor());
+        hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
     }
 
     /**
@@ -252,6 +299,34 @@ public class DocxTemplateUtils {
         hyperlinkRun.setText(text);
         hyperlinkRun.setColor(color);
         hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
+    }
+
+    public void copyHyperlink(XWPFParagraph sourcePar, XWPFParagraph targetPar, CTHyperlink sourceHyperlink) {
+        String rId = sourceHyperlink.getId();
+        PackageRelationship relationship = sourcePar.getDocument().getPackagePart().getRelationship(rId);
+        String url;
+        try {
+            url = relationship.getTargetURI().toURL().toString();
+        } catch (Exception e) {
+            throw new DocxTemplateFillerTechnicalException("Cannot extract URL from the source document's relationship", e);
+        }
+        rId = targetPar.getDocument().getPackagePart().addExternalRelationship(url, XWPFRelation.HYPERLINK.getRelation()).getId();
+        for (CTR ctr : sourceHyperlink.getRArray()) {
+            String text = ctr.getTArray(0).getStringValue();
+            String color;
+            try {
+                color = ctr.getRPr().getColor().xgetVal().getStringValue();
+            } catch (Exception e) {
+                color = HYPERLINK_DEFAULT_COLOR;
+            }
+            CTHyperlink hyperlink = targetPar.getCTP().addNewHyperlink();
+            hyperlink.setId(rId);
+            hyperlink.addNewR();
+            XWPFHyperlinkRun hyperlinkRun = new XWPFHyperlinkRun(hyperlink, hyperlink.getRArray(0), targetPar);
+            hyperlinkRun.setText(text);
+            hyperlinkRun.setColor(color);
+            hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
+        }
     }
 
     /**

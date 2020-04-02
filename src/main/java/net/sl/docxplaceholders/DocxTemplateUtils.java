@@ -133,7 +133,8 @@ public class DocxTemplateUtils {
         for (int i = 0; i < source.getRuns().size(); i++) {
             XWPFRun run = source.getRuns().get(i);
             if (run instanceof XWPFHyperlinkRun) {
-                copyHyperlinkRun(target, (XWPFHyperlinkRun) run);
+                XWPFHyperlinkRun hyperlinkRun = (XWPFHyperlinkRun) run;
+                copyHyperlink(source, target, hyperlinkRun.getCTHyperlink());
             } else {
                 XWPFRun targetRun = target.createRun();
                 //copy formatting
@@ -173,25 +174,6 @@ public class DocxTemplateUtils {
                 throw new DocxTemplateFillerTechnicalException("Unexpected image inserting error ", e);
             }
         }
-    }
-
-    /**
-     * Copy hyperlink run to the target paragraph
-     *
-     * @param target
-     * @param run
-     */
-    private void copyHyperlinkRun(XWPFParagraph target, XWPFHyperlinkRun sourceHyperlinkRun) {
-        String hyperlinkId = sourceHyperlinkRun.getHyperlinkId();
-
-        CTHyperlink hyperlink = target.getCTP().addNewHyperlink();
-        hyperlink.setId(hyperlinkId);
-        hyperlink.addNewR();
-        XWPFHyperlinkRun hyperlinkRun = new XWPFHyperlinkRun(hyperlink, hyperlink.getRArray(0), target);
-        hyperlinkRun.getCTR().setRPr(sourceHyperlinkRun.getCTR().getRPr());
-        hyperlinkRun.setText(getRunText(sourceHyperlinkRun));
-        hyperlinkRun.setColor(sourceHyperlinkRun.getColor());
-        hyperlinkRun.setUnderline(UnderlinePatterns.SINGLE);
     }
 
     /**

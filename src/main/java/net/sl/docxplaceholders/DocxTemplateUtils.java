@@ -538,9 +538,7 @@ public class DocxTemplateUtils {
                 getTablesRef(cell).remove(realTableIndex);
                 cell.getCTTc().removeTbl(realTableIndex);
             }
-            if (!isLastParagraph) {
-                bodyElementsRef.remove(startIndex);
-            }
+            bodyElementsRef.remove(startIndex);
         }
     }
 

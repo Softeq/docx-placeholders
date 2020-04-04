@@ -14,13 +14,12 @@ public class TagInfo
 
     private int tagStartOffset = 0;
 
-    private boolean isTagWithBody = false;
+    private boolean hasClosingSlash = false;
 
-    public TagInfo(String tagText, int tagStartOffset, boolean isTagWithBody)
-    {
+    public TagInfo(String tagText, int tagStartOffset, boolean hasClosingSlash) {
         this.tagText = tagText;
         this.tagStartOffset = tagStartOffset;
-        this.isTagWithBody = isTagWithBody;
+        this.hasClosingSlash = hasClosingSlash;
     }
 
     public String getTagText()
@@ -43,20 +42,20 @@ public class TagInfo
         this.tagStartOffset = tagStartOffset;
     }
 
-    public boolean isTagWithBody() {
-        return isTagWithBody;
-    }
-
-    public void setTagWithBody(boolean tagWithBody) {
-        isTagWithBody = tagWithBody;
-    }
-
     @Override
     public String toString() {
         return "TagInfo{" +
                 "tagText='" + tagText + '\'' +
                 ", tagStartOffset=" + tagStartOffset +
-                ", isTagWithBody=" + isTagWithBody +
+                ", hasClosingSlash=" + hasClosingSlash +
                 '}';
+    }
+
+    public boolean hasClosingSlash() {
+        return hasClosingSlash;
+    }
+
+    public void hasClosingSlash(boolean hasClosingSlash) {
+        this.hasClosingSlash = hasClosingSlash;
     }
 }

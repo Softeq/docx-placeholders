@@ -375,11 +375,11 @@ public class DocxTemplateUtils {
                 }
 
                 String tagText = text.substring(tagStartOffset + context.getTagStart().length(), tagEndOffset);
-                boolean isTagWithBody = !tagText.endsWith("/");
-                if (!isTagWithBody) {
+                boolean hasClosingSlash = tagText.endsWith("/");
+                if (hasClosingSlash) {
                     tagText = tagText.substring(0, tagText.length() - 1);
                 }
-                return new TagInfo(tagText, tagStartOffset, isTagWithBody);
+                return new TagInfo(tagText, tagStartOffset, hasClosingSlash);
             }
         }
         return null;
@@ -535,6 +535,8 @@ public class DocxTemplateUtils {
                 }
             } else if (element instanceof XWPFTable) {
                 int realTableIndex = getTableIndex(bodyElementsRef, (XWPFTable) element);
+                //cell has no simple access to the children table elements
+                //getter returns just a copy so we use a separate method to extract proper collection to remove
                 getTablesRef(cell).remove(realTableIndex);
                 cell.getCTTc().removeTbl(realTableIndex);
             }

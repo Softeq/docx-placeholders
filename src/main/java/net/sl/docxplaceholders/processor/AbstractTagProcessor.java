@@ -50,6 +50,7 @@ public abstract class AbstractTagProcessor {
         List<XWPFRun> parRuns = par.getRuns();
         int tagStartRunIndex = -1;
         int tagEndRunIndex = -1;
+        int trailingSlashCorrection = tag.hasClosingSlash() ? 1 : 0;
         for (int i = 0; i < parRuns.size(); i++) {
             XWPFRun run = parRuns.get(i);
             String runText = run.text();
@@ -59,7 +60,7 @@ public abstract class AbstractTagProcessor {
             if (tag.getTagStartOffset() >= accumulatedTextLength && tag.getTagStartOffset() < runEndPosition) {
                 //found a run where the placeholder starts
                 tagStartRunIndex = i;
-                //the new text for the starrt run is the text without the placeholder
+                //the new text for the start run is the text without the placeholder
                 //but the text for the run will be replaced later
                 newRunText = runText.substring(0, tag.getTagStartOffset() - accumulatedTextLength);
             }
@@ -68,9 +69,9 @@ public abstract class AbstractTagProcessor {
                 tagEndRunIndex = i;
                 if (tagStartRunIndex == tagEndRunIndex) {
                     //the placeholder starts and ends in the same run
-                    afterPlaceholderRunText = runText.substring(tagEndOffset - accumulatedTextLength);
+                    afterPlaceholderRunText = runText.substring(tagEndOffset - accumulatedTextLength + trailingSlashCorrection);
                 } else {
-                    String newEndRunText = runText.substring(tagEndOffset - accumulatedTextLength);
+                    String newEndRunText = runText.substring(tagEndOffset - accumulatedTextLength + trailingSlashCorrection);
                     run.setText(newEndRunText, 0);
                 }
                 //no need to iterate. we found where the tag placeholder ends
@@ -87,6 +88,28 @@ public abstract class AbstractTagProcessor {
         //all the previous runs must remain
         //all the runs in between must be removed completely
         //all the runs after must be removed and reinserted after the run which represents placeholder's value
+        rebuildRunsReplacingPlaceholder(tag, par, tagData, context, afterPlaceholderRunText, tagStartRunIndex, tagEndRunIndex);
+
+    }
+
+    /**
+     * Replace paragraph runs with evaluated tag value.
+     * All the runs between placeholder start and end are removed.
+     *
+     * @param tag
+     * @param par
+     * @param tagData
+     * @param context
+     * @param afterPlaceholderRunText text for the run after the placeholder
+     * @param tagStartRunIndex        index of run where tag starts
+     * @param tagEndRunIndex          index of run where tag ends
+     * @throws IOException
+     * @throws DocxTemplateFillerException
+     */
+    private void rebuildRunsReplacingPlaceholder(TagInfo tag, XWPFParagraph par, Object tagData, DocxTemplateFillerContext context, String afterPlaceholderRunText, int tagStartRunIndex, int tagEndRunIndex)
+            throws IOException, DocxTemplateFillerException {
+        List<XWPFRun> parRuns = par.getRuns();
+        XWPFRun startRun = parRuns.get(tagStartRunIndex);
 
         //create a copy with all the runs
         XWPFDocument clonedParagraphDoc = DocxTemplateUtils.getInstance().deepCloneElements(Collections.singletonList(par));
